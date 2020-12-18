@@ -17,10 +17,10 @@ parser.add_argument('--sample_rate', type=int, default=44100)
 parser.add_argument('--shuffle', type=bool, default=True)
 parser.add_argument('--train_subset', type=str, default='train')
 parser.add_argument('--val_subset', type=str, default='val')
-parser.add_argument('--train_length', type=int, default=32768)
-parser.add_argument('--eval_length', type=int, default=32768)
-parser.add_argument('--batch_size', type=int, default=1)
-parser.add_argument('--num_workers', type=int, default=0)
+parser.add_argument('--train_length', type=int, default=16384)
+parser.add_argument('--eval_length', type=int, default=131072)
+parser.add_argument('--batch_size', type=int, default=128)
+parser.add_argument('--num_workers', type=int, default=16)
 
 # add model specific args
 parser = TCNModel.add_model_specific_args(parser)
@@ -66,7 +66,7 @@ dict_args = vars(args)
 dict_args["nparams"] = 2
 model = TCNModel(**dict_args)
 
-torchsummary.summary(model, [(1,65536), (1,2)])
+torchsummary.summary(model.cuda(), [(1,args.train_length), (1,2)], device="cuda")
 
 # train!
 trainer.fit(model, train_dataloader, val_dataloader)

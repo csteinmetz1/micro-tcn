@@ -85,9 +85,11 @@ class SignalTrainLA2ADataset(torch.utils.data.Dataset):
                                            "frames" : num_frames})
         
             # use only a fraction of the subset data if applicable
-            n_examples = int(np.floor(len(self.file_examples) * self.fraction))
-            example_indices = np.random.randint(0, high=len(self.file_examples), size=n_examples)
-            self.file_examples = [self.file_examples[idx] for idx in example_indices] 
+            if self.fraction < 1.0 and self.subset == "train":
+                n_examples = int(np.floor(len(self.file_examples) * self.fraction))
+                example_indices = np.random.randint(0, high=len(self.file_examples), size=n_examples)
+                self.file_examples = [self.file_examples[idx] for idx in example_indices] 
+                self.file_examples = self.file_examples * 50
 
             self.minutes += ((self.length * len(self.file_examples)) / md.sample_rate) / 60 
 

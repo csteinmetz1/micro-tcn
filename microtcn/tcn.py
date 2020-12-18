@@ -121,7 +121,7 @@ class TCNModel(pl.LightningModule):
                  channel_growth=1, 
                  channel_width=32, 
                  stack_size=10,
-                 grouped=True,
+                 grouped=False,
                  num_examples=4,
                  save_dir=None,
                  **kwargs):
@@ -157,8 +157,6 @@ class TCNModel(pl.LightningModule):
             else:
                 out_ch = self.hparams.channel_width
 
-            print(self.hparams.channel_width)
-
             dilation = self.hparams.dilation_growth ** (n % self.hparams.stack_size)
             self.blocks.append(TCNBlock(in_ch, 
                                         out_ch, 
@@ -193,7 +191,6 @@ class TCNModel(pl.LightningModule):
         for n in range(1,self.hparams.nblocks):
             dilation = self.hparams.dilation_growth ** (n % self.hparams.stack_size)
             rf = rf + ((self.hparams.kernel_size-1) * dilation)
-            rf = rf + ((self.hparams.kernel_size-1) * 1)
         return rf
 
     def training_step(self, batch, batch_idx):
@@ -215,11 +212,11 @@ class TCNModel(pl.LightningModule):
         elif self.hparams.train_loss == "sisdr":
             loss = self.sisdr(pred, target)
         elif self.hparams.train_loss == "stft":
-            loss = torch.stack(self.stft(pred, target),dim=0).sum()
+            loss = self.stft(pred, target)
         elif self.hparams.train_loss == "mrstft":
-            loss = torch.stack(self.mrstft(pred, target),dim=0).sum()
+            loss = self.mrstft(pred, target)
         elif self.hparams.train_loss == "rrstft":
-            loss = torch.stack(self.rrstft(pred, target),dim=0).sum()
+            loss = self.rrstft(pred, target)
         else:
             raise NotImplementedError(f"Invalid loss fn: {self.hparams.train_loss}")
 
@@ -366,7 +363,7 @@ class TCNModel(pl.LightningModule):
         parser.add_argument('--channel_growth', type=int, default=1)
         parser.add_argument('--channel_width', type=int, default=32)
         parser.add_argument('--stack_size', type=int, default=10)
-        parser.add_argument('--grouped', default=True, action='store_true')
+        parser.add_argument('--grouped', default=False, action='store_true')
         # --- training related ---
         parser.add_argument('--lr', type=float, default=1e-3)
         parser.add_argument('--train_loss', type=str, default="l1")
