@@ -6,7 +6,7 @@ class LSTMModel(pl.LightningModule):
                  nparams,
                  ninputs=1,
                  noutputs=1,
-                 hidden_size=32,
+                 hidden_size=1,
                  num_layers=1,
                  num_examples=4,
                  save_dir=None,
