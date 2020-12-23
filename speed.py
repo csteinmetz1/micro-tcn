@@ -30,7 +30,7 @@ def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", N=44
     dict_args["nparams"] = 2
     dict_args["nblocks"] = nblocks
     dict_args["kernel_size"] = kernel_size
-    dict_args["channel_width"] = 16
+    dict_args["channel_width"] = 32
     dict_args["grouped"] = False
     dict_args["dilation_growth"] = dilation_growth
 

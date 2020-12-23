@@ -9,7 +9,7 @@ torchaudio.set_audio_backend("sox_io")
 
 class SignalTrainLA2ADataset(torch.utils.data.Dataset):
     """ SignalTrain LA2A dataset. Source: [10.5281/zenodo.3824876](https://zenodo.org/record/3824876)."""
-    def __init__(self, root_dir, subset="train", length=16384, preload=False, half=False, fraction=0.01, use_soundfile=False):
+    def __init__(self, root_dir, subset="train", length=16384, preload=False, half=True, fraction=0.01, use_soundfile=False):
         """
         Args:
             root_dir (str): Path to the root directory of the SignalTrain dataset.
@@ -72,7 +72,7 @@ class SignalTrainLA2ADataset(torch.utils.data.Dataset):
 
             # create one entry for each patch
             self.file_examples = []
-            for n in range((num_frames // self.length) - 1):
+            for n in range((num_frames // self.length)):
                 offset = int(n * self.length)
                 end = offset + self.length
                 self.file_examples.append({"idx": idx, 
@@ -87,17 +87,21 @@ class SignalTrainLA2ADataset(torch.utils.data.Dataset):
             # use only a fraction of the subset data if applicable
             if self.fraction < 1.0 and self.subset == "train":
                 n_examples = int(np.floor(len(self.file_examples) * self.fraction))
+                if n_examples <= 0: n_examples = 1
                 example_indices = np.random.randint(0, high=len(self.file_examples), size=n_examples)
                 self.file_examples = [self.file_examples[idx] for idx in example_indices] 
-                self.file_examples = self.file_examples * 50
+                self.file_examples = self.file_examples
+                extra_factor = int(1/self.fraction)
+            else:
+                extra_factor = 1
 
             self.minutes += ((self.length * len(self.file_examples)) / md.sample_rate) / 60 
 
             # add to ovearll file examples
-            self.examples += self.file_examples
+            self.examples += self.file_examples * extra_factor
 
         # we then want to get the input files
-        print(f"Located {len(self.examples)} examples totaling {self.minutes:0.1f} min in the {self.subset} subset.")
+        print(f"Located {len(self.examples)} examples totaling {self.minutes:0.2f} min in the {self.subset} subset.")
 
     def __len__(self):
         return len(self.examples)
