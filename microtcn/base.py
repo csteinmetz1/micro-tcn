@@ -177,7 +177,7 @@ class Base(pl.LightningModule):
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         # --- training related ---
-        parser.add_argument('--lr', type=float, default=3e-4)
+        parser.add_argument('--lr', type=float, default=1e-3)
         parser.add_argument('--train_loss', type=str, default="l1+stft")
         # --- vadliation related ---
         parser.add_argument('--save_dir', type=str, default=None)

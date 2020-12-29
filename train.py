@@ -11,6 +11,14 @@ from microtcn.lstm import LSTMModel
 from microtcn.data import SignalTrainLA2ADataset
 
 train_configs = [
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 13,
+     "causal" : True,
+     "train_fraction" : 0.01
+    },
     {"name" : "uTCN-100",
      "model_type" : "tcn",
      "nblocks" : 4,
@@ -75,14 +83,6 @@ train_configs = [
      "causal" : True,
      "train_fraction" : 0.10
     },
-    {"name" : "uTCN-300",
-     "model_type" : "tcn",
-     "nblocks" : 4,
-     "dilation_growth" : 10,
-     "kernel_size" : 13,
-     "causal" : True,
-     "train_fraction" : 0.01
-    },
     {"name" : "LSTM-32",
      "model_type" : "lstm",
      "num_layers" : 1,
@@ -135,6 +135,7 @@ for idx, tconf in enumerate(train_configs):
     # init the trainer and model 
     if tconf["model_type"] == 'tcn':
         specifier =  f"{idx+1}-{tconf['name']}"
+        specifier += "__causal" if tconf['causal'] else "__noncausal"
         specifier += f"__{tconf['nblocks']}-{tconf['dilation_growth']}-{tconf['kernel_size']}"
         specifier += f"__fraction-{tconf['train_fraction']}"
     elif tconf["model_type"] == 'lstm':
