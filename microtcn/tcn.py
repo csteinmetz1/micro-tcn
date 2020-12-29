@@ -8,8 +8,6 @@ from argparse import ArgumentParser
 
 from microtcn.base import Base
 
-import auraloss
-
 def center_crop(x, shape):
     start = (x.shape[-1]-shape[-1])//2
     stop  = start + shape[-1]
@@ -41,7 +39,7 @@ class TCNBlock(torch.nn.Module):
                 in_ch, 
                 out_ch, 
                 kernel_size=3, 
-                padding=0, 
+                padding="same", 
                 dilation=1, 
                 grouped=False, 
                 conditional=False, 
@@ -58,10 +56,16 @@ class TCNBlock(torch.nn.Module):
 
         groups = out_ch if grouped and (in_ch % out_ch == 0) else 1
 
+        if padding == "same":
+            pad_value = (kernel_size - 1) + ((kernel_size - 1) * (dilation-1))
+            print(pad_value)
+        elif padding in ["none", "valid"]:
+            pad_value = 0
+
         self.conv1 = torch.nn.Conv1d(in_ch, 
                                      out_ch, 
                                      kernel_size=kernel_size, 
-                                     padding=padding, 
+                                     padding=pad_value//2, 
                                      dilation=dilation,
                                      groups=groups,
                                      bias=False)
@@ -111,6 +115,8 @@ class TCNModel(Base):
             channel_width (int): When channel_growth = 1 all blocks use convolutions with this many channels. Default: 64
             stack_size (int): Number of blocks that constitute a single stack of blocks. Default: 10
             grouped (bool): Use grouped convolutions to reduce the total number of parameters. Default: False
+            causal (bool): Causal TCN configuration does not consider future input values. Default: False
+            skip_connections (bool): Skip connections from each block to the output. Default: False
             num_examples (int): Number of evaluation audio examples to log after each epochs. Default: 4
         """
     def __init__(self, 
@@ -124,21 +130,13 @@ class TCNModel(Base):
                  channel_width=32, 
                  stack_size=10,
                  grouped=False,
+                 causal=False,
+                 skip_connections=False,
                  num_examples=4,
                  save_dir=None,
                  **kwargs):
         super(TCNModel, self).__init__()
         self.save_hyperparameters()
-
-        # setup loss functions
-        self.l1      = torch.nn.L1Loss()
-        self.esr     = auraloss.time.ESRLoss()
-        self.dc      = auraloss.time.DCLoss()
-        self.logcosh = auraloss.time.LogCoshLoss()
-        self.sisdr   = auraloss.time.SISDRLoss()
-        self.stft    = auraloss.freq.STFTLoss()
-        self.mrstft  = auraloss.freq.MultiResolutionSTFTLoss()
-        self.rrstft  = auraloss.freq.RandomResolutionSTFTLoss()
 
         if self.hparams.nparams > 0:
             self.gen = torch.nn.Sequential(
@@ -164,6 +162,7 @@ class TCNModel(Base):
                                         out_ch, 
                                         kernel_size=self.hparams.kernel_size, 
                                         dilation=dilation,
+                                        padding="same" if self.hparams.causal else "valid",
                                         grouped=self.hparams.grouped,
                                         conditional=True if self.hparams.nparams > 0 else False))
 
@@ -180,12 +179,17 @@ class TCNModel(Base):
         # iterate over blocks passing conditioning
         for idx, block in enumerate(self.blocks):
             x = block(x, cond)
-            if idx == 0:
-                skips = x
+            if self.hparams.skip_connections:
+                if idx == 0:
+                    skips = x
+                else:
+                    skips = center_crop(skips, x.shape) + x
             else:
-                skips = center_crop(skips, x.shape) + x
+                skips = 0
 
-        return torch.tanh(self.output(x + skips))
+        out = torch.tanh(self.output(x + skips))
+
+        return out
 
     def compute_receptive_field(self):
         """ Compute the receptive field in samples."""
@@ -209,5 +213,7 @@ class TCNModel(Base):
         parser.add_argument('--channel_width', type=int, default=32)
         parser.add_argument('--stack_size', type=int, default=10)
         parser.add_argument('--grouped', default=False, action='store_true')
+        parser.add_argument('--causal', default=False, action="store_true")
+        parser.add_argument('--skip_connections', default=False, action="store_true")
 
         return parser

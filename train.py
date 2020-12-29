@@ -10,43 +10,90 @@ from microtcn.tcn import TCNModel
 from microtcn.lstm import LSTMModel
 from microtcn.data import SignalTrainLA2ADataset
 
-model_configs = [
-    {"name" : "TCN-100",
+train_configs = [
+    {"name" : "uTCN-100",
      "model_type" : "tcn",
      "nblocks" : 4,
      "dilation_growth" : 10,
-     "kernel_size" : 5
+     "kernel_size" : 5,
+     "causal" : True,
+     "train_fraction" : 1.00
     },
-    {"name" : "TCN-300",
+    {"name" : "uTCN-300",
      "model_type" : "tcn",
      "nblocks" : 4,
      "dilation_growth" : 10,
-     "kernel_size" : 13
+     "kernel_size" : 13,
+     "causal" : True,
+     "train_fraction" : 1.00
     },
-    {"name" : "TCN-1000",
+    {"name" : "uTCN-1000",
      "model_type" : "tcn",
      "nblocks" : 5,
      "dilation_growth" : 10,
-     "kernel_size" : 5
+     "kernel_size" : 5,
+     "causal" : True,
+     "train_fraction" : 1.00
+    },
+    {"name" : "uTCN-100",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 5,
+     "causal" : False,
+     "train_fraction" : 1.00
+    },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 13,
+     "causal" : False,
+     "train_fraction" : 1.00
+    },
+    {"name" : "uTCN-1000",
+     "model_type" : "tcn",
+     "nblocks" : 5,
+     "dilation_growth" : 10,
+     "kernel_size" : 5,
+     "causal" : False,
+     "train_fraction" : 1.00
+    },
+    {"name" : "TCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 10,
+     "dilation_growth" : 2,
+     "kernel_size" : 15,
+     "causal" : False,
+     "train_fraction" : 1.00
+    },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 13,
+     "causal" : True,
+     "train_fraction" : 0.10
+    },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 13,
+     "causal" : True,
+     "train_fraction" : 0.01
     },
     {"name" : "LSTM-32",
      "model_type" : "lstm",
      "num_layers" : 1,
      "hidden_size" : 32,
+     "train_fraction" : 1.00
     }
 ]
 
-data_configs = [
-    {"train_fraction" : 1.00},  # 100.0%
-    {"train_fraction" : 0.10},  #  10.0%
-    {"train_fraction" : 0.01},  #   1.0%
-    {"train_fraction" : 0.002}, #   0.1%
-]
+n_configs = len(train_configs)
 
-configs = product(model_configs, data_configs)
-n_configs = len(data_configs) * len(model_configs)
-
-for idx, (t_conf, d_conf) in enumerate(configs):
+for idx, tconf in enumerate(train_configs):
 
     parser = ArgumentParser()
 
@@ -71,7 +118,7 @@ for idx, (t_conf, d_conf) in enumerate(configs):
     temp_args, _ = parser.parse_known_args()
 
     print(f"* Training config {idx+1}/{n_configs}")
-    print(t_conf, d_conf)
+    print(tconf)
 
     # set the seed
     pl.seed_everything(42)
@@ -86,14 +133,14 @@ for idx, (t_conf, d_conf) in enumerate(configs):
     args = parser.parse_args()
 
     # init the trainer and model 
-    if t_conf["model_type"] == 'tcn':
-        specifier =  f"{idx+1}-{t_conf['model_type']}"
-        specifier += f"__{t_conf['nblocks']}-{t_conf['dilation_growth']}-{t_conf['kernel_size']}"
-        specifier += f"__fraction-{d_conf['train_fraction']}"
-    elif t_conf["model_type"] == 'lstm':
-        specifier =  f"{idx+1}-{t_conf['model_type']}"
-        specifier += f"__{t_conf['num_layers']}-{t_conf['hidden_size']}"
-        specifier += f"__fraction-{d_conf['train_fraction']}"
+    if tconf["model_type"] == 'tcn':
+        specifier =  f"{idx+1}-{tconf['name']}"
+        specifier += f"__{tconf['nblocks']}-{tconf['dilation_growth']}-{tconf['kernel_size']}"
+        specifier += f"__fraction-{tconf['train_fraction']}"
+    elif tconf["model_type"] == 'lstm':
+        specifier =  f"{idx+1}-{tconf['name']}"
+        specifier += f"__{tconf['num_layers']}-{tconf['hidden_size']}"
+        specifier += f"__fraction-{tconf['train_fraction']}"
 
     args.default_root_dir = os.path.join("lightning_logs", "bulk", specifier)
     print(args.default_root_dir)
@@ -102,7 +149,7 @@ for idx, (t_conf, d_conf) in enumerate(configs):
     # setup the dataloaders
     train_dataset = SignalTrainLA2ADataset(args.root_dir, 
                                     subset=args.train_subset,
-                                    fraction=d_conf["train_fraction"],
+                                    fraction=tconf["train_fraction"],
                                     half=True if args.precision == 16 else False,
                                     preload=args.preload,
                                     length=args.train_length)
@@ -127,15 +174,19 @@ for idx, (t_conf, d_conf) in enumerate(configs):
     dict_args = vars(args)
     dict_args["nparams"] = 2
 
-    if t_conf["model_type"] == 'tcn':
-        dict_args["nblocks"] = t_conf["nblocks"]
-        dict_args["dilation_growth"] = t_conf["dilation_growth"]
-        dict_args["kernel_size"] = t_conf["kernel_size"]
+    if tconf["model_type"] == 'tcn':
+        dict_args["nblocks"] = tconf["nblocks"]
+        dict_args["dilation_growth"] = tconf["dilation_growth"]
+        dict_args["kernel_size"] = tconf["kernel_size"]
+        dict_args["causal"] = tconf["causal"]
         model = TCNModel(**dict_args)
-    elif t_conf["model_type"] == 'lstm':
-        dict_args["num_layers"] = t_conf["num_layers"]
-        dict_args["hidden_size"] = t_conf["hidden_size"]
+    elif tconf["model_type"] == 'lstm':
+        dict_args["num_layers"] = tconf["num_layers"]
+        dict_args["hidden_size"] = tconf["hidden_size"]
         model = LSTMModel(**dict_args)
+
+    # summary 
+    #torchsummary.summary(model, [(1,65536), (1,2)], device="cpu")
 
     # train!
     trainer.fit(model, train_dataloader, val_dataloader)
