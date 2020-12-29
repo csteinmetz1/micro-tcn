@@ -76,29 +76,45 @@ class SignalTrainLA2ADataset(torch.utils.data.Dataset):
                 offset = int(n * self.length)
                 end = offset + self.length
                 self.file_examples.append({"idx": idx, 
-                                           "target_file" : tfile, 
-                                           "input_file" : ifile, 
+                                           "target_file" : tfile,
+                                           "input_file" : ifile,
                                            "input_audio" : input[:,offset:end] if input is not None else None,
                                            "target_audio" : target[:,offset:end] if input is not None else None,
-                                           "params" : params, 
-                                           "offset": offset, 
+                                           "params" : params,
+                                           "offset": offset,
                                            "frames" : num_frames})
+
+            # add to overall file examples
+            self.examples += self.file_examples
         
-            # use only a fraction of the subset data if applicable
-            if self.fraction < 1.0 and self.subset == "train":
-                n_examples = int(np.floor(len(self.file_examples) * self.fraction))
-                if n_examples <= 0: n_examples = 1
-                example_indices = np.random.randint(0, high=len(self.file_examples), size=n_examples)
-                self.file_examples = [self.file_examples[idx] for idx in example_indices] 
-                self.file_examples = self.file_examples
+        # use only a fraction of the subset data if applicable
+        if self.subset == "train":
+            classes = set([ex['params'] for ex in self.examples])
+            n_classes = len(classes) # number of unique compressor configurations
+            fraction_examples = int(len(self.examples) * self.fraction)
+            n_examples_per_class = int(fraction_examples / n_classes)
+            n_min_total = ((self.length * n_examples_per_class * n_classes) / md.sample_rate) / 60 
+            n_min_per_class = ((self.length * n_examples_per_class) / md.sample_rate) / 60 
+            print(sorted(classes))
+            print(f"Total Examples: {len(self.examples)}     Total classes: {n_classes}")
+            print(f"Fraction examples: {fraction_examples}    Examples/class: {n_examples_per_class}")
+            print(f"Training with {n_min_per_class:0.2f} min per class    Total of {n_min_total:0.2f} min")
+
+            if n_examples_per_class <= 0: 
+                raise ValueError(f"Fraction `{self.fraction}` set too low. No examples selected.")
+
+            sampled_examples = []
+
+            for config_class in classes: # select N examples from each class
+                class_examples = [ex for ex in self.examples if ex["params"] == config_class]
+                example_indices = np.random.randint(0, high=len(class_examples), size=n_examples_per_class)
+                class_examples = [class_examples[idx] for idx in example_indices]
                 extra_factor = int(1/self.fraction)
-            else:
-                extra_factor = 1
+                sampled_examples += class_examples * extra_factor
 
-            self.minutes += ((self.length * len(self.file_examples)) / md.sample_rate) / 60 
+            self.examples = sampled_examples
 
-            # add to ovearll file examples
-            self.examples += self.file_examples * extra_factor
+        self.minutes = ((self.length * len(self.examples)) / md.sample_rate) / 60 
 
         # we then want to get the input files
         print(f"Located {len(self.examples)} examples totaling {self.minutes:0.2f} min in the {self.subset} subset.")

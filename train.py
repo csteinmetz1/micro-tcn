@@ -40,7 +40,7 @@ data_configs = [
     {"train_fraction" : 1.00},  # 100.0%
     {"train_fraction" : 0.10},  #  10.0%
     {"train_fraction" : 0.01},  #   1.0%
-    {"train_fraction" : 0.001}, #   0.1%
+    {"train_fraction" : 0.002}, #   0.1%
 ]
 
 configs = product(model_configs, data_configs)
