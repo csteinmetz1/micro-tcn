@@ -38,17 +38,18 @@ def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", N=44
     sr = 44100
     #N = 44100
     duration = N/sr # seconds 
-    n_iters = 10
+    n_iters = 100
     timings = []
 
     if model_type == "TCN": 
         rf = compute_receptive_field(nblocks, dilation_growth, kernel_size)
         samples = N+rf
         # don't construct model if rf is too large
-        if (rf/sr)*1e3 > target_rf * 2: 
-            return rf, 0
-        if (rf/sr)*1e3 < target_rf:
-            return rf, 0
+        if target_rf != -1:
+            if (rf/sr)*1e3 > target_rf * 2: 
+                return rf, 0
+            if (rf/sr)*1e3 < target_rf:
+                return rf, 0
 
         model = TCNModel(**dict_args) # create the model with args
         input = (torch.rand(1,1,samples) * 2) - 1
@@ -95,6 +96,7 @@ def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", N=44
 if __name__ == '__main__':
 
     plot = False
+    full = False
     target_rf = 300 # ms
     max_dilation = 10
     max_blocks = 12
@@ -106,10 +108,25 @@ if __name__ == '__main__':
 
     candidates = []
 
-    for b, d, k in product(nblocks, dilation_factors, kernels):
-        print(b, d, k)
-        rf, rtf = run(b, d, k, target_rf, N=2048)
-        if rf > target_rf:
+    if full:
+        for b, d, k in product(nblocks, dilation_factors, kernels):
+            print(b, d, k)
+            rf, rtf = run(b, d, k, target_rf, N=2048)
+            if rf > target_rf:
+                candidates.append({
+                    "kernel" : k,
+                    "dilation": d,
+                    "blocks" : b,
+                    "rf" : rf,
+                    "rtf" : rtf
+                })
+    else:
+        nblocks = [4, 4, 5, 10]
+        dilation_factors = [10, 10, 10, 2]
+        kernels = [5, 13, 5, 15]
+        for b, d, k in zip(nblocks, dilation_factors, kernels):
+            print(b, d, k)
+            rf, rtf = run(b, d, k, -1, N=2048)
             candidates.append({
                 "kernel" : k,
                 "dilation": d,
