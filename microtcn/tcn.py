@@ -58,7 +58,6 @@ class TCNBlock(torch.nn.Module):
 
         if padding == "same":
             pad_value = (kernel_size - 1) + ((kernel_size - 1) * (dilation-1))
-            print(pad_value)
         elif padding in ["none", "valid"]:
             pad_value = 0
 

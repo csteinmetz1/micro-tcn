@@ -9,11 +9,11 @@ torchaudio.set_audio_backend("sox_io")
 
 class SignalTrainLA2ADataset(torch.utils.data.Dataset):
     """ SignalTrain LA2A dataset. Source: [10.5281/zenodo.3824876](https://zenodo.org/record/3824876)."""
-    def __init__(self, root_dir, subset="train", length=16384, preload=False, half=True, fraction=0.01, use_soundfile=False):
+    def __init__(self, root_dir, subset="train", length=16384, preload=False, half=True, fraction=1.0, use_soundfile=False):
         """
         Args:
             root_dir (str): Path to the root directory of the SignalTrain dataset.
-            subset (str, optional): Pull data either from "train", "val", or "test" subsets. (Default: "train")
+            subset (str, optional): Pull data either from "train", "val", "test", or "full" subsets. (Default: "train")
             length (int, optional): Number of samples in the returned examples. (Default: 40)
             preload (bool, optional): Read in all data into RAM during init. (Default: False)
             half (bool, optional): Store the float32 audio as float16. (Default: True)
@@ -28,9 +28,13 @@ class SignalTrainLA2ADataset(torch.utils.data.Dataset):
         self.fraction = fraction
         self.use_soundfile = use_soundfile
 
-        # get all the target files files in the directory first
-        self.target_files = glob.glob(os.path.join(self.root_dir, self.subset.capitalize(), "target_*.wav"))
-        self.input_files  = glob.glob(os.path.join(self.root_dir, self.subset.capitalize(), "input_*.wav"))
+        if self.subset == "full":
+            self.target_files = glob.glob(os.path.join(self.root_dir, "**", "target_*.wav"))
+            self.input_files  = glob.glob(os.path.join(self.root_dir, "**", "input_*.wav"))
+        else:
+            # get all the target files files in the directory first
+            self.target_files = glob.glob(os.path.join(self.root_dir, self.subset.capitalize(), "target_*.wav"))
+            self.input_files  = glob.glob(os.path.join(self.root_dir, self.subset.capitalize(), "input_*.wav"))
 
         self.examples = [] 
         self.minutes = 0  # total number of hours of minutes in the subset
