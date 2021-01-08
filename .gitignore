@@ -133,3 +133,5 @@ auraloss/
 lightning_logs/
 realtime/libtorch
 models/
+audio/
+plots

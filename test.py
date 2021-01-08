@@ -7,6 +7,7 @@ import pickle
 import torchaudio
 import numpy as np
 import torchsummary
+import pyloudnorm as pyln
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 
@@ -29,6 +30,7 @@ parser.add_argument('--model_dir', type=str, default='./lightning_logs/bulk')
 parser.add_argument('--save_dir', type=str, default=None)
 parser.add_argument('--preload', action="store_true", default=False)
 parser.add_argument('--half', action="store_true", default=False)
+parser.add_argument('--fast', action="store_true", default=False) # skip LSTM
 parser.add_argument('--sample_rate', type=int, default=44100)
 parser.add_argument('--eval_subset', type=str, default='val')
 parser.add_argument('--eval_length', type=int, default=8388608)
@@ -59,6 +61,7 @@ if args.save_dir is not None:
 # set up loss functions for evaluation
 l1   = torch.nn.L1Loss()
 stft = auraloss.freq.STFTLoss()
+meter = pyln.Meter(44100)
 
 models = sorted(glob.glob(os.path.join(args.model_dir, "*")))
 
@@ -80,6 +83,7 @@ for idx, model_dir in enumerate(models):
     print(f" {idx+1}/{len(models)} : epoch: {epoch} {model_dir}")
 
     if model_type == "LSTM":
+        if args.fast is not None: continue
         model = LSTMModel.load_from_checkpoint(
             checkpoint_path=checkpoint_path,
             map_location="cuda:0"
@@ -127,6 +131,10 @@ for idx, model_dir in enumerate(models):
             stft_loss = stft(o, t).cpu().numpy()
             aggregate_loss = l1_loss + stft_loss 
 
+            target_lufs = meter.integrated_loudness(t.squeeze().cpu().numpy())
+            output_lufs = meter.integrated_loudness(o.squeeze().cpu().numpy())
+            l1_lufs = np.abs(output_lufs - target_lufs)
+
             l1i_loss = (l1(i, t) - l1(o, t)).cpu().numpy()
             stfti_loss = (stft(i, t) - stft(o, t)).cpu().numpy()
 
@@ -150,6 +158,7 @@ for idx, model_dir in enumerate(models):
                     "L1i" : [l1i_loss],
                     "STFT" : [stft_loss],
                     "STFTi" : [stfti_loss],
+                    "LUFS" : [l1_lufs],
                     "Agg" : [aggregate_loss]
                 }
             else:
@@ -157,24 +166,27 @@ for idx, model_dir in enumerate(models):
                 results[params_key]["L1i"].append(l1i_loss)
                 results[params_key]["STFT"].append(stft_loss)
                 results[params_key]["STFTi"].append(stfti_loss)
+                results[params_key]["LUFS"].append(l1_lufs)
                 results[params_key]["Agg"].append(aggregate_loss)
 
     # store in dict
     l1_scores = []
+    lufs_scores = []
     stft_scores = []
     agg_scores = []
     print("-" * 64)
-    print("Config      L1         STFT        Agg")
+    print("Config      L1         STFT        Agg      LUFS")
     print("-" * 64)
     for key, val in results.items():
-        print(f"{key}    {np.mean(val['L1']):0.2e}    {np.mean(val['STFT']):0.3f}     {np.mean(val['Agg']):0.3f}")
+        print(f"{key}    {np.mean(val['L1']):0.2e}    {np.mean(val['STFT']):0.3f}       {np.mean(val['Agg']):0.3f}     {np.mean(val['LUFS']):0.3f}")
 
         l1_scores += val["L1"]
         stft_scores += val["STFT"]
+        lufs_scores += val["LUFS"]
         agg_scores += val["Agg"]
 
     print("-" * 64)
-    print(f"Mean     {np.mean(l1_scores):0.2e}    {np.mean(stft_scores):0.3f}      {np.mean(agg_scores):0.3f} ")
+    print(f"Mean     {np.mean(l1_scores):0.2e}    {np.mean(stft_scores):0.3f}      {np.mean(agg_scores):0.3f}      {np.mean(lufs_scores):0.3f}")
     print()
     overall_results[model_id] = results
 
