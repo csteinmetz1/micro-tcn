@@ -17,7 +17,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 13,
      "causal" : True,
-     "train_fraction" : 0.01
+     "train_fraction" : 0.01,
+     "batch_size" : 32
     },
     {"name" : "uTCN-100",
      "model_type" : "tcn",
@@ -25,7 +26,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 5,
      "causal" : True,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-300",
      "model_type" : "tcn",
@@ -33,7 +35,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 13,
      "causal" : True,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-1000",
      "model_type" : "tcn",
@@ -41,7 +44,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 5,
      "causal" : True,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-100",
      "model_type" : "tcn",
@@ -49,7 +53,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 5,
      "causal" : False,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-300",
      "model_type" : "tcn",
@@ -57,7 +62,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 13,
      "causal" : False,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-1000",
      "model_type" : "tcn",
@@ -65,7 +71,8 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 5,
      "causal" : False,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "TCN-300",
      "model_type" : "tcn",
@@ -73,7 +80,8 @@ train_configs = [
      "dilation_growth" : 2,
      "kernel_size" : 15,
      "causal" : False,
-     "train_fraction" : 1.00
+     "train_fraction" : 1.00,
+     "batch_size" : 32
     },
     {"name" : "uTCN-300",
      "model_type" : "tcn",
@@ -81,19 +89,32 @@ train_configs = [
      "dilation_growth" : 10,
      "kernel_size" : 13,
      "causal" : True,
-     "train_fraction" : 0.10
+     "train_fraction" : 0.10,
+     "batch_size" : 32
     },
     {"name" : "LSTM-32",
      "model_type" : "lstm",
      "num_layers" : 1,
      "hidden_size" : 32,
-     "train_fraction" : 1.00
-    }
+     "train_fraction" : 1.00,
+     "batch_size" : 32
+    },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 3,
+     "dilation_growth" : 60,
+     "kernel_size" : 5,
+     "causal" : True,
+     "train_fraction" : 1.0,
+     "batch_size" : 32
+    },
 ]
 
 n_configs = len(train_configs)
 
 for idx, tconf in enumerate(train_configs):
+
+    if (idx+1) not in [11]: continue
 
     parser = ArgumentParser()
 
@@ -119,9 +140,6 @@ for idx, tconf in enumerate(train_configs):
 
     print(f"* Training config {idx+1}/{n_configs}")
     print(tconf)
-
-    # set the seed
-    pl.seed_everything(42)
   
     # let the model add what it wants
     if temp_args.model_type == 'tcn':
@@ -132,16 +150,22 @@ for idx, tconf in enumerate(train_configs):
     # parse them args
     args = parser.parse_args()
 
+    # set the seed
+    pl.seed_everything(42)
+
+    # only run 60 epochs
+    args.max_epochs = 60
+
     # init the trainer and model 
     if tconf["model_type"] == 'tcn':
         specifier =  f"{idx+1}-{tconf['name']}"
         specifier += "__causal" if tconf['causal'] else "__noncausal"
         specifier += f"__{tconf['nblocks']}-{tconf['dilation_growth']}-{tconf['kernel_size']}"
-        specifier += f"__fraction-{tconf['train_fraction']}"
+        specifier += f"__fraction-{tconf['train_fraction']}-bs{tconf['batch_size']}"
     elif tconf["model_type"] == 'lstm':
         specifier =  f"{idx+1}-{tconf['name']}"
         specifier += f"__{tconf['num_layers']}-{tconf['hidden_size']}"
-        specifier += f"__fraction-{tconf['train_fraction']}"
+        specifier += f"__fraction-{tconf['train_fraction']}-bs{tconf['batch_size']}"
 
     args.default_root_dir = os.path.join("lightning_logs", "bulk", specifier)
     print(args.default_root_dir)
@@ -157,7 +181,7 @@ for idx, tconf in enumerate(train_configs):
 
     train_dataloader = torch.utils.data.DataLoader(train_dataset, 
                                                 shuffle=args.shuffle,
-                                                batch_size=args.batch_size,
+                                                batch_size=tconf["batch_size"],
                                                 num_workers=args.num_workers)
 
     val_dataset = SignalTrainLA2ADataset(args.root_dir, 
@@ -168,7 +192,7 @@ for idx, tconf in enumerate(train_configs):
 
     val_dataloader = torch.utils.data.DataLoader(val_dataset, 
                                                 shuffle=False,
-                                                batch_size=2,
+                                                batch_size=8,
                                                 num_workers=args.num_workers)
 
     # create the model with args

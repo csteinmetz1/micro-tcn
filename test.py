@@ -77,13 +77,14 @@ for idx, model_dir in enumerate(models):
     hparams_file = os.path.join(model_dir, "hparams.yaml")
 
     model_id = os.path.basename(model_dir)
+    batch_size = int(os.path.basename(model_dir).split('-')[-1][2:])
     model_type = os.path.basename(model_dir).split('-')[1]
     epoch = int(os.path.basename(checkpoint_path).split('-')[0].split('=')[-1])
 
-    print(f" {idx+1}/{len(models)} : epoch: {epoch} {model_dir}")
+    print(f" {idx+1}/{len(models)} : epoch: {epoch} {model_dir} batch size {batch_size}")
 
     if model_type == "LSTM":
-        if args.fast is not None: continue
+        if not args.fast: continue
         model = LSTMModel.load_from_checkpoint(
             checkpoint_path=checkpoint_path,
             map_location="cuda:0"
@@ -106,7 +107,7 @@ for idx, model_dir in enumerate(models):
 
     for bidx, batch in enumerate(test_dataloader):
 
-        sys.stdout.write(f" {bidx}/{len(test_dataloader)}\r")
+        sys.stdout.write(f" Evaluating {bidx}/{len(test_dataloader)}...\r")
         sys.stdout.flush()
 
         input, target, params = batch
