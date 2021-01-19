@@ -127,7 +127,7 @@ if __name__ == '__main__':
                     "rtf" : rtf
                 })
     else:
-        frame_sizes = [128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
+        frame_sizes = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
         causal      = [True, False]
         for c, N in product(causal, frame_sizes):
             model_id = ["TCN-370", "TCN-100", "TCN-300", "TCN-1000", "TCN-324", "LSTM-32"]
