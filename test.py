@@ -7,6 +7,7 @@ import pickle
 import torchaudio
 import numpy as np
 import torchsummary
+from thop import profile
 import pyloudnorm as pyln
 import pytorch_lightning as pl
 from argparse import ArgumentParser
@@ -39,6 +40,9 @@ parser.add_argument('--num_workers', type=int, default=32)
 
 # parse them args
 args = parser.parse_args()
+
+# set the seed
+pl.seed_everything(42)
 
 # setup the dataloaders
 test_dataset = SignalTrainLA2ADataset(args.root_dir, 
@@ -81,10 +85,8 @@ for idx, model_dir in enumerate(models):
     model_type = os.path.basename(model_dir).split('-')[1]
     epoch = int(os.path.basename(checkpoint_path).split('-')[0].split('=')[-1])
 
-    print(f" {idx+1}/{len(models)} : epoch: {epoch} {model_dir} batch size {batch_size}")
-
     if model_type == "LSTM":
-        if not args.fast: continue
+        if args.fast: continue
         model = LSTMModel.load_from_checkpoint(
             checkpoint_path=checkpoint_path,
             map_location="cuda:0"
@@ -95,6 +97,13 @@ for idx, model_dir in enumerate(models):
             checkpoint_path=checkpoint_path,
             map_location="cuda:0"
         )
+
+    i = torch.rand(1,1,65536)
+    p = torch.rand(1,1,2)
+    macs, params = profile(model, inputs=(i, p))
+
+    print(f" {idx+1}/{len(models)} : epoch: {epoch} {os.path.basename(model_dir)} batch size {batch_size}")
+    print(   f"MACs: {macs/10**9:0.2f} G     Params: {params/1e3:0.2f} k")
 
     model.cuda()
     model.eval()
@@ -176,10 +185,10 @@ for idx, model_dir in enumerate(models):
     stft_scores = []
     agg_scores = []
     print("-" * 64)
-    print("Config      L1         STFT        Agg      LUFS")
+    print("Config      L1         STFT      LUFS")
     print("-" * 64)
     for key, val in results.items():
-        print(f"{key}    {np.mean(val['L1']):0.2e}    {np.mean(val['STFT']):0.3f}       {np.mean(val['Agg']):0.3f}     {np.mean(val['LUFS']):0.3f}")
+        print(f"{key}    {np.mean(val['L1']):0.2e}    {np.mean(val['STFT']):0.3f}       {np.mean(val['LUFS']):0.3f}")
 
         l1_scores += val["L1"]
         stft_scores += val["STFT"]
@@ -187,7 +196,7 @@ for idx, model_dir in enumerate(models):
         agg_scores += val["Agg"]
 
     print("-" * 64)
-    print(f"Mean     {np.mean(l1_scores):0.2e}    {np.mean(stft_scores):0.3f}      {np.mean(agg_scores):0.3f}      {np.mean(lufs_scores):0.3f}")
+    print(f"Mean     {np.mean(l1_scores):0.2e}    {np.mean(stft_scores):0.3f}      {np.mean(lufs_scores):0.3f}")
     print()
     overall_results[model_id] = results
 
