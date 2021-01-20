@@ -108,13 +108,23 @@ train_configs = [
      "train_fraction" : 1.0,
      "batch_size" : 32
     },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 4,
+     "dilation_growth" : 10,
+     "kernel_size" : 13,
+     "causal" : True,
+     "train_fraction" : 1.0,
+     "batch_size" : 32,
+     "max_epochs" : 400
+    },
 ]
 
 n_configs = len(train_configs)
 
 for idx, tconf in enumerate(train_configs):
 
-    if (idx+1) not in [11]: continue
+    if (idx+1) not in [12]: continue
 
     parser = ArgumentParser()
 
@@ -166,6 +176,13 @@ for idx, tconf in enumerate(train_configs):
         specifier =  f"{idx+1}-{tconf['name']}"
         specifier += f"__{tconf['num_layers']}-{tconf['hidden_size']}"
         specifier += f"__fraction-{tconf['train_fraction']}-bs{tconf['batch_size']}"
+
+    if "max_epochs" in tconf:
+        args.max_epochs = tconf["max_epochs"]
+    else:
+        args.max_epochs = 60
+
+    args.precision = 16
 
     args.default_root_dir = os.path.join("lightning_logs", "bulk", specifier)
     print(args.default_root_dir)
