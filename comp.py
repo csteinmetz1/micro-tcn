@@ -126,20 +126,11 @@ if __name__ == '__main__':
     inputfiles = get_files(args.input)
     for inputfile in inputfiles:
         if args.full:
-            limits = [0, 0.5, 1, 2]
-            thresholds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4]
+            limits = [0, 0.5, 1.0, 2.0]
+            thresholds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4.0]
             for limit, threshold in itertools.product(limits, thresholds):
                 process(inputfile, limit, threshold, gpu=args.gpu, verbose=args.verbose)
         else:
             process(inputfile, args.limit, args.threshold, gpu=args.gpu, verbose=args.verbose)
     print()
-
-       
-
-
-
-
-
-
-
    
