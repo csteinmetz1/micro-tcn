@@ -10,6 +10,8 @@ import torchaudio
 from microtcn.tcn import TCNModel
 from microtcn.lstm import LSTMModel
 
+torchaudio.set_audio_backend("sox_io")
+
 def load_model(model_dir, model_id, gpu=False):
 
     checkpoint_path = glob.glob(os.path.join(model_dir,
@@ -53,8 +55,8 @@ def get_files(input):
 
     return inputfiles
 
-def process(inputfile, limit, threshold, gpu=False, verbose=False):
-    input, sr = torchaudio.load(inputfile)
+def process(inputfile, limit, peak_red, gpu=False, verbose=False):
+    input, sr = torchaudio.load(inputfile, normalize=False)
 
     # check if the input is mono
     if input.size(0) > 1:
@@ -66,7 +68,7 @@ def process(inputfile, limit, threshold, gpu=False, verbose=False):
         print(f"Warning: Model only operates at 44.1 kHz, will resample from {sr} Hz.")
 
     # construct conditioning
-    params = torch.tensor([limit, threshold])
+    params = torch.tensor([limit, peak_red])
 
     # add batch dimension
     input = input.view(1,1,-1)
@@ -80,7 +82,7 @@ def process(inputfile, limit, threshold, gpu=False, verbose=False):
 
     # pass through model
     tic = time.perf_counter()
-    out = model(input, params).squeeze()
+    out = model(input, params).view(1,-1)
     toc = time.perf_counter()
     elapsed = toc - tic
 
@@ -92,7 +94,7 @@ def process(inputfile, limit, threshold, gpu=False, verbose=False):
     srcpath = os.path.dirname(inputfile)
     srcbasename = os.path.basename(inputfile).split(".")[0]
     outfile = os.path.join(srcpath, srcbasename)
-    outfile += f"_limit={limit:1.0f}_thresh={threshold:0.1f}.wav"
+    outfile += f"_limit={limit:1.0f}_thresh={peak_red:0.2f}.wav"
     torchaudio.save(outfile, out.cpu(), 44100)
 
 if __name__ == '__main__':
@@ -109,8 +111,8 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action="store_true")
     # -- Compressor control parameters
     parser.add_argument('--limit', help="Compressor set to 'limit' or 'compress' mode", type=int,  default=0)
-    parser.add_argument('--threshold', help="Compressor threshold value from 0 to 1", type=float, default=0.5)
-    parser.add_argument('--full', help="Ignores limit and threshold settings, and produces outputs across the entire range.", action="store_true")
+    parser.add_argument('--peak_red', help="Compressor peak reduction value from 0 to 1", type=float, default=0.5)
+    parser.add_argument('--full', help="Ignores limit and peak reduction settings, and produces outputs across the entire range.", action="store_true")
 
     args = parser.parse_args()
 
@@ -127,11 +129,11 @@ if __name__ == '__main__':
     for inputfile in inputfiles:
         if args.full:
             limits = [0, 0.5, 1, 2]
-            thresholds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4]
-            for limit, threshold in itertools.product(limits, thresholds):
-                process(inputfile, limit, threshold, gpu=args.gpu, verbose=args.verbose)
+            peak_reds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4]
+            for limit, peak_red in itertools.product(limits, peak_reds):
+                process(inputfile, limit, peak_red, gpu=args.gpu, verbose=args.verbose)
         else:
-            process(inputfile, args.limit, args.threshold, gpu=args.gpu, verbose=args.verbose)
+            process(inputfile, args.limit, args.peak_red, gpu=args.gpu, verbose=args.verbose)
     print()
 
        
