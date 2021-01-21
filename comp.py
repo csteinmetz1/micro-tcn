@@ -4,6 +4,7 @@ import glob
 import time
 import torch
 import argparse
+import itertools
 import torchaudio
 
 from microtcn.tcn import TCNModel
@@ -46,14 +47,14 @@ def get_files(input):
         elif os.path.isfile(input):
             inputfiles = [input]
         else:
-            raise RuntimeError(f" '{args.input}' is not a valid file!")
+            raise RuntimeError(f" '{input}' is not a valid file!")
 
     print(f"Found {len(inputfiles)} input file(s).")
 
     return inputfiles
 
 def process(inputfile, limit, threshold, gpu=False, verbose=False):
-    input, sr = torchaudio.load(args.input)
+    input, sr = torchaudio.load(inputfile)
 
     # check if the input is mono
     if input.size(0) > 1:
@@ -85,7 +86,7 @@ def process(inputfile, limit, threshold, gpu=False, verbose=False):
 
     if verbose:
         duration = input.size(-1)/44100
-        print(f"Processed {duration:0.2f} sec in {elapsed:0.3f} sec => {duration/elapsed:0.1f}x real-time\n")
+        print(f"Processed {duration:0.2f} sec in {elapsed:0.3f} sec => {duration/elapsed:0.1f}x real-time")
 
     # save output to disk (in same location)
     srcpath = os.path.dirname(inputfile)
@@ -109,6 +110,7 @@ if __name__ == '__main__':
     # -- Compressor control parameters
     parser.add_argument('--limit', help="Compressor set to 'limit' or 'compress' mode", type=int,  default=0)
     parser.add_argument('--threshold', help="Compressor threshold value from 0 to 1", type=float, default=0.5)
+    parser.add_argument('--full', help="Ignores limit and threshold settings, and produces outputs across the entire range.", action="store_true")
 
     args = parser.parse_args()
 
@@ -123,7 +125,14 @@ if __name__ == '__main__':
     model = load_model(args.model_dir, args.model_id)
     inputfiles = get_files(args.input)
     for inputfile in inputfiles:
-        process(inputfile, args.limit, args.threshold, gpu=args.gpu, verbose=args.verbose)
+        if args.full:
+            limits = [0, 0.5, 1, 2]
+            thresholds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4]
+            for limit, threshold in itertools.product(limits, thresholds):
+                process(inputfile, limit, threshold, gpu=args.gpu, verbose=args.verbose)
+        else:
+            process(inputfile, args.limit, args.threshold, gpu=args.gpu, verbose=args.verbose)
+    print()
 
        
 
