@@ -7,11 +7,7 @@ import pytorch_lightning as pl
 from argparse import ArgumentParser
 
 import auraloss
-
-def center_crop(x, shape):
-    start = (x.shape[-1]-shape[-1])//2
-    stop  = start + shape[-1]
-    return x[...,start:stop]
+from microtcn.utils import center_crop, causal_crop
 
 class Base(pl.LightningModule):
     """ Base module with train and validation loops.
@@ -39,19 +35,22 @@ class Base(pl.LightningModule):
     def forward(self, x, p=None):
         pass
 
+    @torch.jit.unused   
     def training_step(self, batch, batch_idx):
         input, target, params = batch
 
         # pass the input thrgouh the mode
         pred = self(input, params)
 
-        # crop the target signal 
-        target = center_crop(target, pred.shape)
+        # crop the input and target signals
+        if self.hparams.causal:
+            target = causal_crop(target, pred.shape)
+        else:
+            target = center_crop(target, pred.shape)
 
         # compute the error using appropriate loss      
         if   self.hparams.train_loss == "l1":
             loss = self.l1(pred, target)
-            loss = self.sisdr(pred, target)
         elif self.hparams.train_loss == "stft":
             loss = self.stft(pred, target)
         elif self.hparams.train_loss == "l1+stft":
@@ -70,6 +69,7 @@ class Base(pl.LightningModule):
 
         return loss
 
+    @torch.jit.unused
     def validation_step(self, batch, batch_idx):
         input, target, params = batch
 
@@ -77,8 +77,12 @@ class Base(pl.LightningModule):
         pred = self(input, params)
 
         # crop the input and target signals
-        input_crop = center_crop(input, pred.shape)
-        target_crop = center_crop(target, pred.shape)
+        if self.hparams.causal:
+            input_crop = causal_crop(input, pred.shape)
+            target_crop = causal_crop(target, pred.shape)
+        else:
+            input_crop = center_crop(input, pred.shape)
+            target_crop = center_crop(target, pred.shape)
 
         # compute the validation error using all losses
         l1_loss      = self.l1(pred, target_crop)
@@ -99,6 +103,7 @@ class Base(pl.LightningModule):
 
         return outputs
 
+    @torch.jit.unused
     def validation_epoch_end(self, validation_step_outputs):
         # flatten the output validation step dicts to a single dict
         outputs = {
@@ -157,12 +162,15 @@ class Base(pl.LightningModule):
                                 torch.tensor(p).view(1,-1).float(),
                                 sample_rate=self.hparams.sample_rate)
 
+    @torch.jit.unused
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
+    @torch.jit.unused
     def test_epoch_end(self, test_step_outputs):
         return self.validation_epoch_end(test_step_outputs)
 
+    @torch.jit.unused
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
         lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, verbose=True)

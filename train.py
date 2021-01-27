@@ -10,6 +10,8 @@ from microtcn.tcn import TCNModel
 from microtcn.lstm import LSTMModel
 from microtcn.data import SignalTrainLA2ADataset
 
+torch.backends.cudnn.benchmark = True
+
 train_configs = [
     {"name" : "uTCN-300",
      "model_type" : "tcn",
@@ -116,7 +118,18 @@ train_configs = [
      "causal" : True,
      "train_fraction" : 1.0,
      "batch_size" : 32,
-     "max_epochs" : 400
+     "max_epochs" : 60,
+     "train_loss" : "l1"
+    },
+    {"name" : "uTCN-300",
+     "model_type" : "tcn",
+     "nblocks" : 20,
+     "dilation_growth" : 2,
+     "kernel_size" : 15,
+     "causal" : True,
+     "train_fraction" : 1.0,
+     "batch_size" : 32,
+     "max_epochs" : 60,
     },
 ]
 
@@ -124,7 +137,7 @@ n_configs = len(train_configs)
 
 for idx, tconf in enumerate(train_configs):
 
-    if (idx+1) not in [12]: continue
+    if (idx+1) not in [2]: continue
 
     parser = ArgumentParser()
 
@@ -182,6 +195,10 @@ for idx, tconf in enumerate(train_configs):
     else:
         args.max_epochs = 60
 
+    if "train_loss" in tconf:
+        args.train_loss = tconf["train_loss"]
+        specifier += f"__loss-{tconf['train_loss']}"
+
     args.precision = 16
 
     args.default_root_dir = os.path.join("lightning_logs", "bulk", specifier)
@@ -199,7 +216,8 @@ for idx, tconf in enumerate(train_configs):
     train_dataloader = torch.utils.data.DataLoader(train_dataset, 
                                                 shuffle=args.shuffle,
                                                 batch_size=tconf["batch_size"],
-                                                num_workers=args.num_workers)
+                                                num_workers=args.num_workers,
+                                                pin_memory=True)
 
     val_dataset = SignalTrainLA2ADataset(args.root_dir, 
                                     preload=args.preload,
@@ -210,7 +228,8 @@ for idx, tconf in enumerate(train_configs):
     val_dataloader = torch.utils.data.DataLoader(val_dataset, 
                                                 shuffle=False,
                                                 batch_size=8,
-                                                num_workers=args.num_workers)
+                                                num_workers=args.num_workers,
+                                                pin_memory=True)
 
     # create the model with args
     dict_args = vars(args)
@@ -228,7 +247,7 @@ for idx, tconf in enumerate(train_configs):
         model = LSTMModel(**dict_args)
 
     # summary 
-    #torchsummary.summary(model, [(1,65536), (1,2)], device="cpu")
+    torchsummary.summary(model, [(1,65536), (1,2)], device="cpu")
 
     # train!
     trainer.fit(model, train_dataloader, val_dataloader)

@@ -7,11 +7,7 @@ import pytorch_lightning as pl
 from argparse import ArgumentParser
 
 from microtcn.base import Base
-
-def center_crop(x, shape):
-    start = (x.shape[-1]-shape[-1])//2
-    stop  = start + shape[-1]
-    return x[...,start:stop]
+from microtcn.utils import center_crop, causal_crop
 
 class FiLM(torch.nn.Module):
     def __init__(self, 
@@ -42,6 +38,7 @@ class TCNBlock(torch.nn.Module):
                 padding="same", 
                 dilation=1, 
                 grouped=False, 
+                causal=False,
                 conditional=False, 
                 **kwargs):
         super(TCNBlock, self).__init__()
@@ -52,6 +49,7 @@ class TCNBlock(torch.nn.Module):
         self.padding = padding
         self.dilation = dilation
         self.grouped = grouped
+        self.causal = causal
         self.conditional = conditional
 
         groups = out_ch if grouped and (in_ch % out_ch == 0) else 1
@@ -64,7 +62,7 @@ class TCNBlock(torch.nn.Module):
         self.conv1 = torch.nn.Conv1d(in_ch, 
                                      out_ch, 
                                      kernel_size=kernel_size, 
-                                     padding=pad_value//2, 
+                                     padding=0, # testing a change in padding was pad_value//2
                                      dilation=dilation,
                                      groups=groups,
                                      bias=False)
@@ -96,7 +94,10 @@ class TCNBlock(torch.nn.Module):
         x = self.relu(x)
 
         x_res = self.res(x_in)
-        x = x + center_crop(x_res, x.shape)
+        if self.causal:
+            x = x + causal_crop(x_res, x.shape)
+        else:
+            x = x + center_crop(x_res, x.shape)
 
         return x
 
@@ -162,6 +163,7 @@ class TCNModel(Base):
                                         kernel_size=self.hparams.kernel_size, 
                                         dilation=dilation,
                                         padding="same" if self.hparams.causal else "valid",
+                                        causal=self.hparams.causal,
                                         grouped=self.hparams.grouped,
                                         conditional=True if self.hparams.nparams > 0 else False))
 
