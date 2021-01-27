@@ -17,11 +17,7 @@ import auraloss
 from microtcn.tcn import TCNModel
 from microtcn.lstm import LSTMModel
 from microtcn.data import SignalTrainLA2ADataset
-
-def center_crop(x, shape):
-    start = (x.shape[-1]-shape[-1])//2
-    stop  = start + shape[-1]
-    return x[...,start:stop]
+from microtcn.utils import center_crop, causal_crop
 
 parser = ArgumentParser()
 
@@ -100,10 +96,10 @@ for idx, model_dir in enumerate(models):
 
     i = torch.rand(1,1,65536)
     p = torch.rand(1,1,2)
-    macs, params = profile(model, inputs=(i, p))
+    #macs, params = profile(model, inputs=(i, p))
 
     print(f" {idx+1}/{len(models)} : epoch: {epoch} {os.path.basename(model_dir)} batch size {batch_size}")
-    print(   f"MACs: {macs/10**9:0.2f} G     Params: {params/1e3:0.2f} k")
+    #print(   f"MACs: {macs/10**9:0.2f} G     Params: {params/1e3:0.2f} k")
 
     model.cuda()
     model.eval()
@@ -128,8 +124,15 @@ for idx, model_dir in enumerate(models):
 
         with torch.no_grad(), torch.cuda.amp.autocast():
             output = model(input, params)
-            target_crop = center_crop(target, output.shape)
-            input_crop = center_crop(input, output.shape)
+
+            # crop the input and target signals
+            if model.hparams.causal:
+                input_crop = causal_crop(input, output.shape)
+                target_crop = causal_crop(target, output.shape)
+            else:
+                input_crop = center_crop(input, output.shape)
+                target_crop = center_crop(target, output.shape)
+
 
         for idx, (i, o, t, p) in enumerate(zip(
                                             torch.split(input_crop, 1, dim=0),
