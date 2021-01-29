@@ -127,11 +127,11 @@ for idx, model_dir in enumerate(models):
 
             # crop the input and target signals
             if model.hparams.causal:
-                input_crop = causal_crop(input, output.shape)
-                target_crop = causal_crop(target, output.shape)
+                input_crop = causal_crop(input, output.shape[-1])
+                target_crop = causal_crop(target, output.shape[-1])
             else:
-                input_crop = center_crop(input, output.shape)
-                target_crop = center_crop(target, output.shape)
+                input_crop = center_crop(input, output.shape[-1])
+                target_crop = center_crop(target, output.shape[-1])
 
 
         for idx, (i, o, t, p) in enumerate(zip(
