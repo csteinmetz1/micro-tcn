@@ -134,4 +134,5 @@ lightning_logs/
 realtime/libtorch
 models/
 audio/
-plots
+plots/
+demo/
