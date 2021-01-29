@@ -57,6 +57,7 @@ def get_files(input):
 
 def process(inputfile, limit, peak_red, gpu=False, verbose=False):
     input, sr = torchaudio.load(inputfile, normalize=False)
+    input = input.float() / 32768
 
     # check if the input is mono
     if input.size(0) > 1:
@@ -94,7 +95,7 @@ def process(inputfile, limit, peak_red, gpu=False, verbose=False):
     srcpath = os.path.dirname(inputfile)
     srcbasename = os.path.basename(inputfile).split(".")[0]
     outfile = os.path.join(srcpath, srcbasename)
-    outfile += f"_limit={limit:1.0f}_thresh={peak_red:0.2f}.wav"
+    outfile += f"-{limit:1.0f}-{int(peak_red*100)}-tcn-300-c.wav"
     torchaudio.save(outfile, out.cpu(), 44100)
 
 if __name__ == '__main__':
@@ -128,17 +129,10 @@ if __name__ == '__main__':
     inputfiles = get_files(args.input)
     for inputfile in inputfiles:
         if args.full:
-<<<<<<< HEAD
-            limits = [0, 0.5, 1, 2]
-            peak_reds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4]
-            for limit, peak_red in itertools.product(limits, peak_reds):
-                process(inputfile, limit, peak_red, gpu=args.gpu, verbose=args.verbose)
-=======
-            limits = [0, 0.5, 1.0, 2.0]
-            thresholds = [-0.2, -0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 4.0]
+            limits = [0.0, 1.0]
+            thresholds = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
             for limit, threshold in itertools.product(limits, thresholds):
                 process(inputfile, limit, threshold, gpu=args.gpu, verbose=args.verbose)
->>>>>>> 84412cad2318b33498a1961f7d93161420f17f81
         else:
             process(inputfile, args.limit, args.peak_red, gpu=args.gpu, verbose=args.verbose)
     print()
