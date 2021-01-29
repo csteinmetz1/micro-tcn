@@ -2,9 +2,9 @@ import os
 import glob
 import torch
 import torchsummary
+from itertools import product
 import pytorch_lightning as pl
 from argparse import ArgumentParser
-from itertools import product
 
 from microtcn.tcn import TCNModel
 from microtcn.lstm import LSTMModel
@@ -123,13 +123,24 @@ train_configs = [
     },
     {"name" : "uTCN-300",
      "model_type" : "tcn",
-     "nblocks" : 20,
+     "nblocks" : 30,
      "dilation_growth" : 2,
      "kernel_size" : 15,
-     "causal" : True,
+     "causal" : False,
      "train_fraction" : 1.0,
      "batch_size" : 32,
      "max_epochs" : 60,
+    },
+    {"name" : "uTCN-324-16",
+     "model_type" : "tcn",
+     "nblocks" : 10,
+     "dilation_growth" : 2,
+     "kernel_size" : 15,
+     "causal" : False,
+     "train_fraction" : 1.0,
+     "batch_size" : 32,
+     "max_epochs" : 60,
+     "channel_width" : 16,
     },
 ]
 
@@ -137,7 +148,8 @@ n_configs = len(train_configs)
 
 for idx, tconf in enumerate(train_configs):
 
-    if (idx+1) not in [2]: continue
+    #if (idx+1) not in [14]: continue
+    # if you only want to train a specific model
 
     parser = ArgumentParser()
 
@@ -240,6 +252,8 @@ for idx, tconf in enumerate(train_configs):
         dict_args["dilation_growth"] = tconf["dilation_growth"]
         dict_args["kernel_size"] = tconf["kernel_size"]
         dict_args["causal"] = tconf["causal"]
+        if "channel_width" in tconf:
+            dict_args["channel_width"] = tconf["channel_width"]
         model = TCNModel(**dict_args)
     elif tconf["model_type"] == 'lstm':
         dict_args["num_layers"] = tconf["num_layers"]
