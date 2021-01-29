@@ -81,23 +81,23 @@ class TCNBlock(torch.nn.Module):
                                    groups=in_ch,
                                    bias=False)
 
-    def forward(self, x, p=None):
+    def forward(self, x, p):
         x_in = x
 
         x = self.conv1(x)
-        if self.grouped: # apply pointwise conv
-            x = self.conv1b(x)
-        if p is not None:   # apply FiLM conditioning
-            x = self.film(x, p)
-        else:
-            x = self.bn(x)
+        #if self.grouped: # apply pointwise conv
+        #    x = self.conv1b(x)
+        #if p is not None:   
+        x = self.film(x, p) # apply FiLM conditioning
+        #else:
+        #    x = self.bn(x)
         x = self.relu(x)
 
         x_res = self.res(x_in)
         if self.causal:
-            x = x + causal_crop(x_res, x.shape)
+            x = x + causal_crop(x_res, x.shape[-1])
         else:
-            x = x + center_crop(x_res, x.shape)
+            x = x + center_crop(x_res, x.shape[-1])
 
         return x
 
@@ -169,24 +169,24 @@ class TCNModel(Base):
 
         self.output = torch.nn.Conv1d(out_ch, noutputs, kernel_size=1)
 
-    def forward(self, x, p=None):
+    def forward(self, x, p):
         # if parameters present, 
         # compute global conditioning
-        if p is not None:
-            cond = self.gen(p)
-        else:
-            cond = None
+        #if p is not None:
+        cond = self.gen(p)
+        #else:
+        #    cond = None
 
         # iterate over blocks passing conditioning
         for idx, block in enumerate(self.blocks):
             x = block(x, cond)
-            if self.hparams.skip_connections:
-                if idx == 0:
-                    skips = x
-                else:
-                    skips = center_crop(skips, x.shape) + x
-            else:
-                skips = 0
+            #if self.hparams.skip_connections:
+            #    if idx == 0:
+            #        skips = x
+            #    else:
+            #        skips = center_crop(skips, x[-1]) + x
+            #else:
+            skips = 0
 
         out = torch.tanh(self.output(x + skips))
 

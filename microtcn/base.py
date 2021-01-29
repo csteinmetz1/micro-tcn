@@ -28,11 +28,12 @@ class Base(pl.LightningModule):
         super(Base, self).__init__()
         self.save_hyperparameters()
 
-        # setup loss functions
+        # these lines need to be commented out when trying
+        # to jit these models in `export.py`
         self.l1      = torch.nn.L1Loss()
         self.stft    = auraloss.freq.STFTLoss()
 
-    def forward(self, x, p=None):
+    def forward(self, x, p):
         pass
 
     @torch.jit.unused   
@@ -44,9 +45,9 @@ class Base(pl.LightningModule):
 
         # crop the input and target signals
         if self.hparams.causal:
-            target = causal_crop(target, pred.shape)
+            target = causal_crop(target, pred.shape[-1])
         else:
-            target = center_crop(target, pred.shape)
+            target = center_crop(target, pred.shape[-1])
 
         # compute the error using appropriate loss      
         if   self.hparams.train_loss == "l1":
@@ -78,11 +79,11 @@ class Base(pl.LightningModule):
 
         # crop the input and target signals
         if self.hparams.causal:
-            input_crop = causal_crop(input, pred.shape)
-            target_crop = causal_crop(target, pred.shape)
+            input_crop = causal_crop(input, pred.shape[-1])
+            target_crop = causal_crop(target, pred.shape[-1])
         else:
-            input_crop = center_crop(input, pred.shape)
-            target_crop = center_crop(target, pred.shape)
+            input_crop = center_crop(input, pred.shape[-1])
+            target_crop = center_crop(target, pred.shape[-1])
 
         # compute the validation error using all losses
         l1_loss      = self.l1(pred, target_crop)
