@@ -130,17 +130,20 @@ if __name__ == '__main__':
         frame_sizes = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
         causal      = [True, False]
         for c, N in product(causal, frame_sizes):
-            model_id = ["TCN-370", "TCN-100", "TCN-300", "TCN-1000", "TCN-324", "LSTM-32"]
-            model_type = ["TCN", "TCN", "TCN", "TCN", "TCN", "LSTM"]
-            nblocks          = [ 3, 4,  4,  5, 10, 0]
-            dilation_factors = [64,10, 10, 10,  2, 0]
-            kernels          = [ 5, 5, 13,  5, 15, 0]
-            for mid, m, b, d, k in zip(model_id, 
+            model_id = ["TCN-370", "TCN-100", "TCN-300", "TCN-1000", "TCN-324", "LSTM-32", "TCN-324", "TCN-324"]
+            model_type = ["TCN", "TCN", "TCN", "TCN", "TCN", "LSTM", "TCN", "TCN"]
+            nblocks          = [ 3, 4,  4,  5, 10, 0, 10, 10]
+            dilation_factors = [64,10, 10, 10,  2, 0, 2, 2]
+            kernels          = [ 5, 5, 13,  5, 15, 0, 15, 15]
+            channels         = [32, 32, 32, 32, 32, 0, 16, 8]
+            for mid, m, b, d, k, c in zip(model_id, 
                                         model_type, 
                                         nblocks, 
                                         dilation_factors, 
-                                        kernels):
-                print(b, d, k)
+                                        kernels,
+                                        channels):
+                print(b, d, k, c)
+                #if m != "LSTM": continue
                 rf, rtf = run(b, d, k, -1, causal=c, N=N, model_type=m, gpu=args.gpu)
                 if c:   mid += "-C"
                 else:   mid += "-N"
@@ -150,6 +153,7 @@ if __name__ == '__main__':
                     "kernel" : k,
                     "dilation": d,
                     "blocks" : b,
+                    "channels" : c,
                     "rf" : rf,
                     "rtf" : rtf,
                     "N" : N
