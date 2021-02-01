@@ -23,7 +23,7 @@ def compute_receptive_field(nblocks, dilation_growth, kernel_size, stack_size=10
         rf = rf + ((kernel_size-1) * dilation)
     return rf
 
-def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", causal=False, N=44100, gpu=False):
+def run(nblocks, dilation_growth, kernel_size, channels, target_rf, model_type="TCN", causal=False, N=44100, gpu=False):
 
     pl.seed_everything(42) # set the seed
 
@@ -31,7 +31,7 @@ def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", caus
     dict_args["nparams"] = 2
     dict_args["nblocks"] = nblocks
     dict_args["kernel_size"] = kernel_size
-    dict_args["channel_width"] = 32
+    dict_args["channel_width"] = channels
     dict_args["hidden_size"] = 32
     dict_args["grouped"] = False
     dict_args["causal"] = causal
@@ -40,7 +40,7 @@ def run(nblocks, dilation_growth, kernel_size, target_rf, model_type="TCN", caus
     sr = 44100
     #N = 44100
     duration = N/sr # seconds 
-    n_iters = 10
+    n_iters = 100
     timings = []
 
     if model_type == "TCN": 
@@ -130,21 +130,21 @@ if __name__ == '__main__':
         frame_sizes = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
         causal      = [True, False]
         for c, N in product(causal, frame_sizes):
-            model_id = ["TCN-370", "TCN-100", "TCN-300", "TCN-1000", "TCN-324", "LSTM-32", "TCN-324", "TCN-324"]
+            model_id = ["TCN-370", "TCN-100", "TCN-300", "TCN-1000", "TCN-324", "LSTM-32", "TCN-324-16", "TCN-324-8"]
             model_type = ["TCN", "TCN", "TCN", "TCN", "TCN", "LSTM", "TCN", "TCN"]
             nblocks          = [ 3, 4,  4,  5, 10, 0, 10, 10]
             dilation_factors = [64,10, 10, 10,  2, 0, 2, 2]
             kernels          = [ 5, 5, 13,  5, 15, 0, 15, 15]
             channels         = [32, 32, 32, 32, 32, 0, 16, 8]
-            for mid, m, b, d, k, c in zip(model_id, 
+            for mid, m, b, d, k, ch in zip(model_id, 
                                         model_type, 
                                         nblocks, 
                                         dilation_factors, 
                                         kernels,
                                         channels):
-                print(b, d, k, c)
+                print(b, d, k, ch)
                 #if m != "LSTM": continue
-                rf, rtf = run(b, d, k, -1, causal=c, N=N, model_type=m, gpu=args.gpu)
+                rf, rtf = run(b, d, k, ch, -1, causal=c, N=N, model_type=m, gpu=args.gpu)
                 if c:   mid += "-C"
                 else:   mid += "-N"
                 candidates.append({
@@ -153,7 +153,7 @@ if __name__ == '__main__':
                     "kernel" : k,
                     "dilation": d,
                     "blocks" : b,
-                    "channels" : c,
+                    "channels" : ch,
                     "rf" : rf,
                     "rtf" : rtf,
                     "N" : N
