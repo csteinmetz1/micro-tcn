@@ -19,10 +19,11 @@ def runtime_plot(df, name="speed"):
     marker = itertools.cycle(('x', '+', '.', '^', '*')) 
 
     #plt.plot(tcn370['N'], tcn370['rtf'], label='TCN-370-C')
-    plt.plot(tcn100['N'], tcn100['rtf'], marker=next(marker), label='TCN-100-C')
-    plt.plot(tcn300['N'], tcn300['rtf'], marker=next(marker), label='TCN-300-C')
+    #plt.plot(tcn100['N'], tcn100['rtf'], marker=next(marker), label='TCN-100-C')
     plt.plot(tcn324['N'], tcn324['rtf'], marker=next(marker), label='TCN-324-N')
-    plt.plot(tcn1000['N'], tcn1000['rtf'], marker=next(marker), label='TCN-1000-C')
+    plt.plot(tcn300['N'], tcn300['rtf'], marker=next(marker), label='TCN-300-C')
+
+    #plt.plot(tcn1000['N'], tcn1000['rtf'], marker=next(marker), label='TCN-1000-C')
     plt.plot(lstm32['N'], lstm32['rtf'], marker=next(marker), label='LSTM-32')
 
     ax.spines['top'].set_visible(False)
@@ -74,20 +75,20 @@ def joint_runtime_plot(df_gpu, df_cpu):
     marker = itertools.cycle(('x', '+', '.', '^', '*')) 
     color = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
-    mk = next(marker)
-    c = next(color)
-    plt.plot(tcn100_gpu['N'], tcn100_gpu['rtf'], c=c, linestyle='-', label='TCN-100-C')
-    plt.plot(tcn100_cpu['N'], tcn100_cpu['rtf'], c=c, linestyle='--')
+    #mk = next(marker)
+    #c = next(color)
+    #plt.plot(tcn100_gpu['N'], tcn100_gpu['rtf'], c=c, linestyle='-', label='TCN-100-C')
+    #plt.plot(tcn100_cpu['N'], tcn100_cpu['rtf'], c=c, linestyle='--')
 
     mk = next(marker)
     c = next(color)
-    plt.plot(tcn300_gpu['N'], tcn300_gpu['rtf'], c=c, linestyle='-', label='TCN-300-C')
-    plt.plot(tcn300_cpu['N'], tcn300_cpu['rtf'], c=c, linestyle='--')
+    plt.plot(tcn324_gpu['N'], tcn324_gpu['rtf'], c=c, linestyle='-', label='TCN-324-N', marker=mk)
+    plt.plot(tcn324_cpu['N'], tcn324_cpu['rtf'], c=c, linestyle='--', marker=mk)
 
     mk = next(marker)
     c = next(color)
-    plt.plot(tcn324_gpu['N'], tcn324_gpu['rtf'], c=c, linestyle='-', label='TCN-324-N')
-    plt.plot(tcn324_cpu['N'], tcn324_cpu['rtf'], c=c, linestyle='--')
+    plt.plot(tcn300_gpu['N'], tcn300_gpu['rtf'], c=c, linestyle='-', label='TCN-300-C', marker=mk)
+    plt.plot(tcn300_cpu['N'], tcn300_cpu['rtf'], c=c, linestyle='--', marker=mk)
 
     #mk = next(marker)
     #c = next(color)
@@ -96,8 +97,8 @@ def joint_runtime_plot(df_gpu, df_cpu):
 
     mk = next(marker)
     c = next(color)
-    plt.plot(lstm32_gpu['N'], lstm32_gpu['rtf'], c=c, linestyle='-', label='LSTM-32')
-    plt.plot(lstm32_cpu['N'], lstm32_cpu['rtf'], c=c, linestyle='--')
+    plt.plot(lstm32_gpu['N'], lstm32_gpu['rtf'], c=c, linestyle='-', label='LSTM-32', marker=mk)
+    plt.plot(lstm32_cpu['N'], lstm32_cpu['rtf'], c=c, linestyle='--', marker=mk)
 
     #plt.plot(tcn300['N'], tcn300['rtf'], marker=next(marker), label='TCN-300-C')
     #plt.plot(tcn324['N'], tcn324['rtf'], marker=next(marker), label='TCN-324-N')
@@ -120,7 +121,7 @@ def joint_runtime_plot(df_gpu, df_cpu):
     plt.ylim([0.01,1400])
     plt.yticks([0.01, 0.1, 1.0, 10, 100, 1000],  [f"{n}" for n in [0.01, 0.1, 1.0, 10, 100, 1000]])
 
-    plt.ylabel("Realtime factor")
+    plt.ylabel("Real-time factor")
     plt.xlabel("Frame size")
 
     plt.legend()
@@ -139,7 +140,7 @@ if __name__ == '__main__':
     if not os.path.isdir("plots"):
         os.makedirs("plots")
 
-    df_gpu = pd.read_csv("speed_gpu.csv", index_col=0)
+    df_gpu = pd.read_csv("speed_gpu_leopold.csv", index_col=0)
     #df_cpu = pd.read_csv("speed_cpu_leopold.csv", index_col=0)
     df_cpu = pd.read_csv("speed_cpu_macbook.csv", index_col=0)
 
