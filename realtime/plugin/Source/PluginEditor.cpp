@@ -42,9 +42,7 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     getLookAndFeel().setColour (PopupMenu::highlightedBackgroundColourId, Colours::lightgrey);
     getLookAndFeel().setColour (PopupMenu::highlightedTextColourId, Colours::darkgrey);
 
-    useBiasButton.setButtonText ("Bias");
     linkGainButton.setButtonText ("Link");
-    depthwiseButton.setButtonText ("Depthwise");
 
     Colour fillColour = Colour (0xffececec); // side panel color
 
@@ -68,72 +66,35 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     outputGainLabel.setText ("out", dontSendNotification);
     outputGainLabel.attachToComponent (&outputGainSlider, true); 
 
-    layersSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
-    kernelSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
-    channelsSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
+    limitSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
+    peakReductionSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
 
-    addAndMakeVisible (layersSlider);
-    addAndMakeVisible (kernelSlider);
-    addAndMakeVisible (channelsSlider);
+    addAndMakeVisible (limitSlider);
+    addAndMakeVisible (peakReductionSlider);
     addAndMakeVisible (inputGainSlider);
     addAndMakeVisible (outputGainSlider);
-    addAndMakeVisible (dilationsComboBox);
-    addAndMakeVisible (activationsComboBox);
-    addAndMakeVisible (initTypeComboBox);
-    addAndMakeVisible (useBiasButton);
+    //addAndMakeVisible (dilationsComboBox);
     addAndMakeVisible (linkGainButton);
-    addAndMakeVisible (depthwiseButton);
     addAndMakeVisible (inputGainLabel);
     addAndMakeVisible (outputGainLabel);
 
     // attach labels
-    addAndMakeVisible (layersLabel);
-    layersLabel.setText ("layers", dontSendNotification);
-    layersLabel.attachToComponent (&layersSlider, true); 
-    addAndMakeVisible (kernelLabel);
-    kernelLabel.setText ("kernel", dontSendNotification);
-    kernelLabel.attachToComponent (&kernelSlider, true); 
-    addAndMakeVisible (channelsLabel);
-    channelsLabel.setText ("channels", dontSendNotification);
-    channelsLabel.attachToComponent (&channelsSlider, true); 
+    addAndMakeVisible (limitLabel);
+    limitLabel.setText ("Limit", dontSendNotification);
+    limitLabel.attachToComponent (&limitSlider, true); 
+    addAndMakeVisible (peakReductionLabel);
+    peakReductionLabel.setText ("Peak Reduction", dontSendNotification);
+    peakReductionLabel.attachToComponent (&peakReductionSlider, true); 
 
     // add options to comboboxes
-    dilationsComboBox.addItem ("1^n", 1);
-    dilationsComboBox.addItem ("2^n", 2);
-    dilationsComboBox.addItem ("3^n", 3);
-    dilationsComboBox.addItem ("4^n", 4);
+    //dilationsComboBox.addItem ("1^n", 1);
+    //dilationsComboBox.addItem ("2^n", 2);
+    //dilationsComboBox.addItem ("3^n", 3);
+    //dilationsComboBox.addItem ("4^n", 4);
 
-    activationsComboBox.addItem("Linear",     1);
-    activationsComboBox.addItem("LeakyReLU",  2);
-    activationsComboBox.addItem("Tanh",       3);
-    activationsComboBox.addItem("Sigmoid",    4);
-    activationsComboBox.addItem("ReLU",       5);
-    activationsComboBox.addItem("ELU",        6);
-    activationsComboBox.addItem("SELU",       7);
-    activationsComboBox.addItem("GELU",       8);
-    activationsComboBox.addItem("RReLU",      9);
-    activationsComboBox.addItem("Softplus",  10);
-    activationsComboBox.addItem("Softshrink",11); 
-    activationsComboBox.addItem("Sine",      12); 
-    activationsComboBox.addItem("Sine x 30", 13); 
-
-    initTypeComboBox.addItem("Normal", 1);
-    initTypeComboBox.addItem("Uniform (-0.25, 0.25)", 2);
-    initTypeComboBox.addItem("Uniform (-1.00, 1.00)", 3);
-    initTypeComboBox.addItem("Xavier (Normal)", 4);
-    initTypeComboBox.addItem("Xavier (Uniform)", 5);
-    initTypeComboBox.addItem("Kaiming (Normal)", 6);
-    initTypeComboBox.addItem("Kaiming (Uniform)", 7);
-
-    addAndMakeVisible (dilationsLabel);
-    dilationsLabel.setText ("dilation", dontSendNotification);
-    dilationsLabel.attachToComponent (&dilationsComboBox, true); 
-    addAndMakeVisible (activationsLabel);
-    activationsLabel.setText ("activation", dontSendNotification);
-    activationsLabel.attachToComponent (&activationsComboBox, true); 
-    addAndMakeVisible (initTypeLabel);
-    initTypeLabel.setText ("init type", dontSendNotification);
-    initTypeLabel.attachToComponent (&initTypeComboBox, true); 
+    //addAndMakeVisible (dilationsLabel);
+    //dilationsLabel.setText ("dilation", dontSendNotification);
+    //dilationsLabel.attachToComponent (&dilationsComboBox, true); 
 
     receptiveFieldTextEditor.setColour (TextEditor::backgroundColourId, fillColour);
     receptiveFieldTextEditor.setColour (TextEditor::outlineColourId, fillColour);
@@ -171,28 +132,28 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     addAndMakeVisible(seedTextEditor);
     addAndMakeVisible(seedLabel);
 
-    layersAttachment.reset      (new SliderAttachment   (valueTreeState, "layers", layersSlider));
-    kernelAttachment.reset      (new SliderAttachment   (valueTreeState, "kernel", kernelSlider));
-    channelsAttachment.reset    (new SliderAttachment   (valueTreeState, "channels", channelsSlider));
+    limitAttachment.reset         (new SliderAttachment   (valueTreeState, "limit", limitSlider));
+    peakReductionAttachment.reset (new SliderAttachment   (valueTreeState, "peakReduction", peakReductionSlider));
+    //channelsAttachment.reset    (new SliderAttachment   (valueTreeState, "channels", channelsSlider));
     inputGainAttachment.reset   (new SliderAttachment   (valueTreeState, "inputGain", inputGainSlider));
     outputGainAttachment.reset  (new SliderAttachment   (valueTreeState, "outputGain", outputGainSlider));
-    dilationsAttachment.reset   (new ComboBoxAttachment (valueTreeState, "dilation", dilationsComboBox));
-    activationsAttachment.reset (new ComboBoxAttachment (valueTreeState, "activation", activationsComboBox));
-    initTypeAttachment.reset    (new ComboBoxAttachment (valueTreeState, "initType", initTypeComboBox));
-    useBiasAttachment.reset     (new ButtonAttachment   (valueTreeState, "useBias", useBiasButton));
+    //dilationsAttachment.reset   (new ComboBoxAttachment (valueTreeState, "dilation", dilationsComboBox));
+    //activationsAttachment.reset (new ComboBoxAttachment (valueTreeState, "activation", activationsComboBox));
+    //initTypeAttachment.reset    (new ComboBoxAttachment (valueTreeState, "initType", initTypeComboBox));
+    //useBiasAttachment.reset     (new ButtonAttachment   (valueTreeState, "useBias", useBiasButton));
     linkGainAttachment.reset    (new ButtonAttachment   (valueTreeState, "linkGain", linkGainButton));
-    depthwiseAttachment.reset   (new ButtonAttachment   (valueTreeState, "depthwise", depthwiseButton));
+    //depthwiseAttachment.reset   (new ButtonAttachment   (valueTreeState, "depthwise", depthwiseButton));
     //seedAttachment.reset        (new TextBoxAttachment  (valueTreeState, "seed", seedTextEditor));
 
     // callbacks for updating the model (not all parameters)
-    layersSlider.onValueChange   = [this] { updateModelState(); };
-    kernelSlider.onValueChange   = [this] { updateModelState(); };
-    channelsSlider.onValueChange = [this] { updateModelState(); };
-    dilationsComboBox.onChange   = [this] { updateModelState(); };
-    activationsComboBox.onChange = [this] { updateModelState(); };
-    initTypeComboBox.onChange    = [this] { updateModelState(); };
-    useBiasButton.onStateChange  = [this] { updateModelState(); };
-    depthwiseButton.onStateChange = [this] { updateModelState(); };
+    //layersSlider.onValueChange   = [this] { updateModelState(); };
+    //kernelSlider.onValueChange   = [this] { updateModelState(); };
+    //channelsSlider.onValueChange = [this] { updateModelState(); };
+    //dilationsComboBox.onChange   = [this] { updateModelState(); };
+    //activationsComboBox.onChange = [this] { updateModelState(); };
+    //initTypeComboBox.onChange    = [this] { updateModelState(); };
+    //useBiasButton.onStateChange  = [this] { updateModelState(); };
+    //depthwiseButton.onStateChange = [this] { updateModelState(); };
 
     setSize (600, 300);
 }
@@ -301,9 +262,11 @@ void uTCNAudioProcessorEditor::resized()
     area.removeFromRight(sidePanelWidth);
     area.removeFromRight(sectionPadding);
 
-    layersSlider.setBounds        (area.removeFromTop (contentItemHeight));
+
+    limitSlider.setBounds        (area.removeFromTop (contentItemHeight));
     area.removeFromTop(contentPadding);
-    kernelSlider.setBounds        (area.removeFromTop (contentItemHeight));
+    peakReductionSlider.setBounds        (area.removeFromTop (contentItemHeight));
+    /*
     area.removeFromTop(contentPadding);
     channelsSlider.setBounds      (area.removeFromTop (contentItemHeight));
     area.removeFromTop(contentPadding);
@@ -318,5 +281,6 @@ void uTCNAudioProcessorEditor::resized()
     useBiasButton.setBounds       (toggleArea);
     linkGainButton.setBounds      (toggleArea.removeFromRight(60));
     depthwiseButton.setBounds     (toggleArea.removeFromRight(120));
+    */
 }
 

@@ -86,18 +86,10 @@ private:
     AudioProcessorValueTreeState parameters;
 
     // is this not dangerous to use floats for values that are actually ints?
-    std::atomic<float>* inputGainParameter  = nullptr;
-    std::atomic<float>* outputGainParameter = nullptr;
-    std::atomic<float>* layersParameter     = nullptr;
-    std::atomic<float>* channelsParameter   = nullptr;
-    std::atomic<float>* kernelParameter     = nullptr;
-    std::atomic<float>* useBiasParameter    = nullptr;
-    std::atomic<float>* dilationParameter   = nullptr;
-    std::atomic<float>* activationParameter = nullptr;
-    std::atomic<float>* initTypeParameter   = nullptr;
-    std::atomic<float>* seedParameter       = nullptr;
-    std::atomic<float>* depthwiseParameter  = nullptr;
-
+    std::atomic<float>* inputGainParameter     = nullptr;
+    std::atomic<float>* outputGainParameter    = nullptr;
+    std::atomic<float>* limitParameter         = nullptr;
+    std::atomic<float>* peakReductionParameter = nullptr;
 
     AudioBuffer<float> membuf, procbuf; // circular buffer to store input data
     int mbr, mbw; // read and write pointers

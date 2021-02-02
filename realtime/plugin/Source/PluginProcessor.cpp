@@ -14,6 +14,7 @@
 #include <torch/script.h>
 #include <torch/torch.h>
 
+using namespace torch::indexing;
 
 //==============================================================================
 uTCNAudioProcessor::uTCNAudioProcessor()
@@ -29,36 +30,21 @@ uTCNAudioProcessor::uTCNAudioProcessor()
 #endif
     parameters (*this, nullptr, Identifier ("ronn"),
     {
-        std::make_unique<AudioParameterInt>   ("layers", "Layers", 1, 24, 6),
-        std::make_unique<AudioParameterInt>   ("kernel", "Kernel Width", 1, 64, 3),
-        std::make_unique<AudioParameterInt>   ("channels", "Channels", 1, 64, 8),
         std::make_unique<AudioParameterFloat> ("inputGain", "Input Gain", -24.0f, 24.0f, 0.0f),   
         std::make_unique<AudioParameterFloat> ("outputGain", "Output Gain", -24.0f, 24.0f, 0.0f),
-        std::make_unique<AudioParameterBool>  ("useBias", "Use Bias", false),
-        std::make_unique<AudioParameterInt>   ("activation", "Activation", 1, 10, 1),
-        std::make_unique<AudioParameterInt>   ("dilation", "Dilation Factor", 1, 4, 1),
-        std::make_unique<AudioParameterInt>   ("initType", "Init Type", 1, 6, 1),
-        std::make_unique<AudioParameterInt>   ("seed", "Seed", 0, 1024, 42),
-        std::make_unique<AudioParameterBool>  ("linkGain", "Link", false),
-        std::make_unique<AudioParameterBool>  ("depthwise", "Depthwise", false)
+
+        std::make_unique<AudioParameterFloat> ("limit", "Limit/Compress", 0.0f, 1.0f, 0.0f),
+        std::make_unique<AudioParameterFloat> ("peakReduction", "Peak Reduction", 0.0f, 100.0f, 50.0f),
     })
 {
  
-    layersParameter     = parameters.getRawParameterValue ("layers");
-    kernelParameter     = parameters.getRawParameterValue ("kernel");
-    channelsParameter   = parameters.getRawParameterValue ("channels");
-    inputGainParameter  = parameters.getRawParameterValue ("inputGain");
-    outputGainParameter = parameters.getRawParameterValue ("outputGain");
-    useBiasParameter    = parameters.getRawParameterValue ("useBias");
-    activationParameter = parameters.getRawParameterValue ("activation");
-    dilationParameter   = parameters.getRawParameterValue ("dilation");
-    initTypeParameter   = parameters.getRawParameterValue ("initType");
-    seedParameter       = parameters.getRawParameterValue ("seed");
-    depthwiseParameter  = parameters.getRawParameterValue ("depthwise");
+    inputGainParameter     = parameters.getRawParameterValue ("inputGain");
+    outputGainParameter    = parameters.getRawParameterValue ("outputGain");
+    limitParameter         = parameters.getRawParameterValue ("limit");
+    peakReductionParameter = parameters.getRawParameterValue ("peakReduction");
 
     // neural network model
     buildModel();
-
 }
 
 uTCNAudioProcessor::~uTCNAudioProcessor()
@@ -162,9 +148,8 @@ bool uTCNAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) con
     return true;
   #else
     // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != AudioChannelSet::stereo())
+    // In this template code we only support mono.
+    if (layouts.getMainOutputChannelSet() != AudioChannelSet::mono())
         return false;
 
     // This checks if the input layout matches the output layout
@@ -200,16 +185,17 @@ void uTCNAudioProcessor::setupBuffers()
     membuflength = (int)(receptiveFieldSamples - 1);
     procbuflength = (int)(receptiveFieldSamples - 1 + blockSamples);
 
+    std::cout << "membuflength " << membuflength << std::endl;
+    std::cout << "procbuflength " << procbuflength << std::endl;
+
     // Initialize the to n channels
     nInputs = getTotalNumInputChannels();
 
     // and membuflength samples per channel
-    membuf.setSize(nInputs, membuflength);
+    membuf.setSize(1, membuflength);
     membuf.clear();
-    mbr = 0;
-    mbw = 0;
 
-    procbuf.setSize(nInputs, procbuflength);
+    procbuf.setSize(1, procbuflength);
     procbuf.clear();
 }
 
@@ -228,63 +214,34 @@ void uTCNAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& m
     membuf.copyFrom(0,0,procbuf,0,procbuflength-membuflength,membuflength); 
 
     // 3. now move the process buffer to a tensor
-    std::vector<int64_t> sizes = {procbuflength};           // size of the process buffer data
+    std::vector<int64_t> sizes = {procbuflength*inChannels};// size of the process buffer data
     auto* procbufptr = procbuf.getWritePointer(0);          // get pointer of the first channel 
     at::Tensor frame = torch::from_blob(procbufptr, sizes); // load data from buffer into tensor type
 
-    //std::cout << "blob " << frame.sizes() << std::endl;
-
     frame = torch::mul(frame, inputGainLn);                 // apply the input gain first
-    frame = torch::reshape(frame, {1,1,procbuflength});      // reshape so we have a batch and channel dimension
+    frame = torch::reshape(frame, {1,1,procbuflength});     // reshape so we have a batch and channel dimension
 
-    //std::cout << "reshape " << frame.sizes() << std::endl;
+    at::Tensor parameters = torch::empty({2});
+    parameters.index_put_({0}, (float)*limitParameter);
+    parameters.index_put_({1}, (float)*peakReductionParameter/100.0);
+    parameters = torch::reshape(parameters, {outChannels,1,2});      // reshape so we have a batch and channel dimension
 
     std::vector<torch::jit::IValue> inputs;                 // create special holder for model inputs
     inputs.push_back(frame);                                // add the process buffer
-    //at::Tenor params = {1, 0.65};
-    inputs.push_back(torch::ones({1, 1, 2}));               // add the parameter values (conditioning)
-
-    //std::cout << "input " << frame.sizes() << std::endl;
+    inputs.push_back(parameters);                           // add the parameter values (conditioning)
 
     at::Tensor output = model.forward(inputs).toTensor();
 
-    //std::cout << "output " << output.sizes() << std::endl;
-
-    // now load the output channels back into the buffer
-    for (int channel = 0; channel < 1; ++channel) {
-        auto outputData = output.index({0,channel,torch::indexing::Slice()});      // index the proper output channel
-        auto outputDataPtr = outputData.data_ptr<float>();      
-        buffer.copyFrom(channel,0,outputDataPtr,blockSamples);    // copy output data to buffer                                         
-        //highPassFilters[channel].processSamples(buffer.getWritePointer (channel), buffer.getNumSamples());
-    }
-    buffer.applyGain(outputGainLn);                                  // apply the output gain
-    
-    /*
-
-    if (nInputs > 1){
-        auto* iBufferData = iBuffer.getWritePointer(1);                         // get pointer of the second channel 
-        at::Tensor tensorFrameR = torch::from_blob(iBufferData, sizes);         // load data from buffer into tensor type
-        tensorFrameR = torch::mul(tensorFrameR, inputGainLn);                   // apply the input gain first
-        tensorFrame = at::stack({tensorFrame, tensorFrameR});                   // stack the two channels to form the stereo tensor
-        //std::cout << "input" << tensorFrame.sizes() << std::endl;
-    }
-
-    //std::cout << "input reshape" << tensorFrame.sizes() << std::endl;
-
-    auto outputFrame = model->forward(tensorFrame);                             // process audio through network
-    //std::cout << "output" << outputFrame.sizes() << std::endl;
-
     // now load the output channels back into the buffer
     for (int channel = 0; channel < outChannels; ++channel) {
-        auto outputData = outputFrame.index({0,channel,torch::indexing::Slice()});      // index the proper output channel
-        auto outputDataPtr = outputData.data_ptr<float>();        buffer.copyFrom(channel,0,outputDataPtr,blockSamples);                          // get pointer to the output data
-                              // copy output data to buffer
-        highPassFilters[channel].processSamples (buffer.getWritePointer (channel), buffer.getNumSamples());
+        auto outputData = output.index({channel,0,torch::indexing::Slice()});      // index the proper output channel
+        auto outputDataPtr = outputData.data_ptr<float>();      
+        buffer.copyFrom(channel,0,outputDataPtr,blockSamples);    // copy output data to buffer
+        // remove the DC bias                                      
+        highPassFilters[channel].processSamples(buffer.getWritePointer (channel), buffer.getNumSamples());
     }
     buffer.applyGain(outputGainLn);                                  // apply the output gain
-
-    */
-
+   
 }
 
 //==============================================================================
@@ -329,6 +286,9 @@ void uTCNAudioProcessor::buildModel()
     }
 
     std::cout << "ok\n";
+    calculateReceptiveField();
+    std::cout << "receptive field: " << receptiveFieldSamples << std::endl;;
+    setupBuffers();
 
 }
 

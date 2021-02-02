@@ -49,16 +49,16 @@ private:
     // Main panel controls
     //==============================================================================
 
-    Slider layersSlider, kernelSlider, channelsSlider;
-    Label layersLabel, kernelLabel, channelsLabel;
-    std::unique_ptr<SliderAttachment> layersAttachment, kernelAttachment, channelsAttachment;
- 
-    ToggleButton useBiasButton, linkGainButton, depthwiseButton; 
-    std::unique_ptr<ButtonAttachment> useBiasAttachment, linkGainAttachment, depthwiseAttachment;
+    Slider limitSlider, peakReductionSlider;
+    Label limitLabel, peakReductionLabel;
+    std::unique_ptr<SliderAttachment> limitAttachment, peakReductionAttachment;
 
-    ComboBox dilationsComboBox, activationsComboBox, initTypeComboBox;
-    Label dilationsLabel, activationsLabel, initTypeLabel;
-    std::unique_ptr<ComboBoxAttachment> dilationsAttachment, activationsAttachment, initTypeAttachment;
+    ToggleButton linkGainButton; 
+    std::unique_ptr<ButtonAttachment> linkGainAttachment;
+
+    //ComboBox dilationsComboBox, activationsComboBox, initTypeComboBox;
+    //Label dilationsLabel, activationsLabel, initTypeLabel;
+    //std::unique_ptr<ComboBoxAttachment> dilationsAttachment, activationsAttachment, initTypeAttachment;
 
     // Side panel controls
     //==============================================================================
