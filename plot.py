@@ -5,6 +5,76 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 
+def compute_receptive_field(kernel_size, nblocks, dilation_growth, stack_size=10):
+    """ Compute the receptive field in samples."""
+    rf = kernel_size
+    layer_rf = []
+    for n in range(1,nblocks):
+        layer_rf.append(rf)
+        dilation = dilation_growth ** (n % stack_size)
+        rf = rf + ((kernel_size-1) * dilation)
+    layer_rf.append(rf)
+    return rf, layer_rf 
+
+def plot_recepetive_field_growth():
+
+    models = [
+        {"name" : "TCN-100",
+         "nblocks" : 4,
+         "dilation_growth" : 10,
+         "kernel_size" : 5,
+         "color" : "#4053d3"
+        }, 
+        {"name" : "TCN-300",
+         "nblocks" : 4,
+         "dilation_growth" : 10,
+         "kernel_size" : 13,
+         "color" : "#ddb310"
+        }, 
+        {"name" : "TCN-324",
+         "nblocks" : 10,
+         "dilation_growth" : 2,
+         "kernel_size" : 15,
+         "color" : "#b51d14"
+        }, 
+        {"name" : "TCN-1000",
+         "nblocks" : 5,
+         "dilation_growth" : 10,
+         "kernel_size" : 5,
+         "color" : "#00b25d"
+        }, 
+    ]
+
+    fig, ax = plt.subplots()
+    width = 0.3
+    sample_rate = 44100
+
+    for idx, model in enumerate(models):
+        rf, layer_rf = compute_receptive_field(model["kernel_size"], 
+                                               model["nblocks"], 
+                                               model["dilation_growth"])
+        layers = np.arange(len(layer_rf)) + 1
+        print(model["name"], layer_rf)
+        plt.plot(layers, (np.array(layer_rf)/sample_rate) * 1e3, label=model["name"], marker='o', color=model["color"])
+        plt.hlines((layer_rf[-1]/sample_rate) * 1e3, 1, 10, linestyle='--', colors=model["color"])
+        #plt.text(layers[-1] + 0.2, layer_rf[-1] + 1250, model["name"])
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    #plt.yscale('log')
+    plt.xticks(np.arange(10) + 1)
+    plt.xticks(np.arange(100, step=10) + 1)
+
+    plt.legend()
+    plt.grid(color='lightgray')
+
+    fig.savefig("plots/receptive_field_growth.pdf")
+    fig.savefig("plots/receptive_field_growth.svg")
+    fig.savefig("plots/receptive_field_growth.png")
+
+
 def runtime_plot(df, name="speed"):
 
     tcn100  = df[df['model_id'] == 'TCN-100-C']
@@ -72,6 +142,58 @@ def joint_runtime_plot(df_gpu, df_cpu):
 
     fig, ax = plt.subplots(figsize=(6,3.5))
 
+    N = 2048
+    print("CPU")
+    print("-" * 32)
+    print("non-causal")
+    tcn100_N_cpu  = df_cpu[df_cpu['model_id'] == 'TCN-100-N']
+    tcn300_N_cpu  = df_cpu[df_cpu['model_id'] == 'TCN-300-N']
+    tcn1000_N_cpu  = df_cpu[df_cpu['model_id'] == 'TCN-1000-N']
+
+    print(tcn324_cpu[tcn324_cpu['N'] == N])
+    print(tcn100_N_cpu[tcn100_N_cpu['N'] == N])
+    print(tcn300_N_cpu[tcn300_N_cpu['N'] == N])
+    print(tcn1000_N_cpu[tcn1000_N_cpu['N'] == N])
+
+    print()
+    print("causal")
+    print(tcn100_cpu[tcn100_cpu['N'] == N])
+    print(tcn300_cpu[tcn300_cpu['N'] == N])
+    print(tcn1000_cpu[tcn1000_cpu['N'] == N])
+    print(lstm32_cpu[lstm32_cpu['N'] == N])
+    print()
+
+    tcn324_16_cpu  = df_cpu[df_cpu['model_id'] == 'TCN-324-16-N']
+    tcn324_8_cpu  = df_cpu[df_cpu['model_id'] == 'TCN-324-8-N']
+    print(tcn324_16_cpu[tcn324_16_cpu['N'] == N])
+    print(tcn324_8_cpu[tcn324_8_cpu['N'] == N])
+
+    print("GPU")
+    print("-" * 32)
+    print("non-causal")
+    tcn100_N_gpu  = df_gpu[df_gpu['model_id'] == 'TCN-100-N']
+    tcn300_N_gpu  = df_gpu[df_gpu['model_id'] == 'TCN-300-N']
+    tcn1000_N_gpu  = df_gpu[df_gpu['model_id'] == 'TCN-1000-N']
+
+    print(tcn324_gpu[tcn324_gpu['N'] == N])
+    print(tcn100_N_gpu[tcn100_N_gpu['N'] == N])
+    print(tcn300_N_gpu[tcn300_N_gpu['N'] == N])
+    print(tcn1000_N_gpu[tcn1000_N_gpu['N'] == N])
+
+    print()
+    print("causal")
+    print(tcn100_gpu[tcn100_gpu['N'] == N])
+    print(tcn300_gpu[tcn300_gpu['N'] == N])
+    print(tcn1000_gpu[tcn1000_gpu['N'] == N])
+    print(lstm32_gpu[lstm32_gpu['N'] == N])
+    print()
+
+    cn324_16_gpu  = df_gpu[df_gpu['model_id'] == 'TCN-324-16-N']
+    cn324_8_gpu  = df_gpu[df_gpu['model_id'] == 'TCN-324-8-N']
+    print(cn324_16_gpu[cn324_16_gpu['N'] == N])
+    print(cn324_8_gpu[cn324_8_gpu['N'] == N])
+
+
     marker = itertools.cycle(('x', '+', '.', '^', '*')) 
     color = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -115,7 +237,7 @@ def joint_runtime_plot(df_gpu, df_cpu):
     ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-    plt.xticks(tcn100_gpu['N'], rotation=-45)
+    plt.xticks(tcn324_cpu['N'], rotation=-45)
 
     plt.xlim([32,65540])
     plt.ylim([0.01,1400])
@@ -140,12 +262,10 @@ if __name__ == '__main__':
     if not os.path.isdir("plots"):
         os.makedirs("plots")
 
-    df_gpu = pd.read_csv("speed_gpu_leopold.csv", index_col=0)
-    #df_cpu = pd.read_csv("speed_cpu_leopold.csv", index_col=0)
-    df_cpu = pd.read_csv("speed_cpu_macbook.csv", index_col=0)
+    df_gpu = pd.read_csv("speed_gpu_rtx3090.csv", index_col=0)
+    df_cpu = pd.read_csv("speed_cpu_macbook_v2.csv", index_col=0)
 
-
-    runtime_plot(df_gpu, name="speed_gpu")
-    runtime_plot(df_cpu, name="speed_cpu")
+    #runtime_plot(df_gpu, name="speed_gpu")
+    #runtime_plot(df_cpu, name="speed_cpu")
     joint_runtime_plot(df_gpu, df_cpu)
 
