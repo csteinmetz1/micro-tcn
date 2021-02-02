@@ -3,12 +3,15 @@
 
 # micro-TCN
 
-Data and compute efficient neural network for audio effect modeling.
+Efficient neural networks for audio effect modeling.
 
-| [Paper]() | [Demo]() |
+| [Paper]() | [Demo]() | [Plugin]() |
 
 </div>
 
+<div align="center">
+<img src="plots/speed_cpu+gpu.svg">
+</div>
 
 ## Setup
 
@@ -26,10 +29,16 @@ pip install git+https://github.com/csteinmetz1/auraloss
 
 ## Pre-trained models
 
-You can download the pre-trained models [here](). Then unzip.
+You can download the pre-trained models [here](). Then unzip as below.
+```
+mkdir lightning_logs
+mv models.zip lightning_logs/
+cd lightning_logs/
+unzip models.zip 
+```
 
 Use the `compy.py` script in order to process audio files. 
-Below is an example of how to run the TCN-300-C pre-trained model on gpu.
+Below is an example of how to run the TCN-300-C pre-trained model on GPU.
 This will process all the files in the `audio/` directory with the limit mode engaged and a peak reduction of 42. 
 
 ```
@@ -90,11 +99,47 @@ python train.py \
 --gpus 1 \
 ```
 
+## Plugin
+
+We provide plugin builds (AV/VST3) for macOS. 
+You can also build the plugin for your platform.
+First, you will need download and extract libtorch. 
+Check the [PyTorch site](https://pytorch.org/get-started/locally/) to find the correct version. 
+
+```
+wget https://download.pytorch.org/libtorch/cpu/libtorch-macos-1.7.1.zip
+unzip libtorch-macos-1.7.1.zip
+```
+
+Now move this into the `realtime/` directory .
+```
+mv libtorch realtime/
+```
+
+We provide a `ncomp.jucer` file and a `CMakeLists.txt` that was created using [FRUT](https://github.com/McMartin/FRUT).
+You will likely need to compile and run FRUT on this `.jucer` file in order to create a valid `CMakeLists.txt`.
+To do so, follow the instructions on compiling [FRUT](https://github.com/McMartin/FRUT).
+Then convert the `.jucer` file. You will have to update the paths here to reflect the location of FRUT.
+```
+cd realtime/plugin/
+../../FRUT/prefix/FRUT/bin/Jucer2CMake reprojucer ncomp.jucer ../../FRUT/prefix/FRUT/cmake/Reprojucer.cmake
+```
+
+Now you can finally build the plugin using CMake with the `build.sh` script. 
+BUT, you will have to first update the path to libtorch in the `build.sh` script.
+```
+rm -rf build
+mkdir build
+cd build
+cmake .. -G Xcode -DCMAKE_PREFIX_PATH=/absolute/path/to/libtorch ..
+cmake --build .
+```
+
 ## Citation
 If you use any of this code in your work, please consider citing us. 
 ```
 @article{steinmetz2020efficient,
-        title={Data and compute efficient neural networks for real-time audio effect modeling},
+        title={Efficient neural networks for real-time audio effect modeling},
         author={Steinmetz, Christian J. and Reiss, Joshua D.},
         journal={arXiv:},
         year={2021}}
