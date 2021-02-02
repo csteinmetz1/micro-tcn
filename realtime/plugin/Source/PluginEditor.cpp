@@ -53,7 +53,7 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     inputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.inputGainLn));
     inputGainSlider.setColour (Slider::textBoxBackgroundColourId, fillColour);
     inputGainSlider.setColour (Slider::textBoxOutlineColourId, fillColour);
-    inputGainLabel.setText ("in", dontSendNotification);
+    inputGainLabel.setText ("Input", dontSendNotification);
     inputGainLabel.attachToComponent (&inputGainSlider, true); 
     
     outputGainSlider.setRange(-24, 24);
@@ -63,7 +63,7 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     outputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.outputGainLn));
     outputGainSlider.setColour (Slider::textBoxBackgroundColourId, fillColour);
     outputGainSlider.setColour (Slider::textBoxOutlineColourId, fillColour);
-    outputGainLabel.setText ("out", dontSendNotification);
+    outputGainLabel.setText ("Makeup", dontSendNotification);
     outputGainLabel.attachToComponent (&outputGainSlider, true); 
 
     limitSlider.setTextBoxStyle (Slider::TextBoxRight, false, 30, 24);
@@ -120,6 +120,7 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     addAndMakeVisible(parametersTextEditor);
     addAndMakeVisible(parametersLabel);
 
+    /*
     seedTextEditor.setColour (TextEditor::backgroundColourId, fillColour);
     seedTextEditor.setColour (TextEditor::outlineColourId, fillColour);
     seedTextEditor.setColour (TextEditor::textColourId, Colours::darkgrey);
@@ -131,6 +132,7 @@ uTCNAudioProcessorEditor::uTCNAudioProcessorEditor (uTCNAudioProcessor& p, Audio
     seedLabel.attachToComponent (&seedTextEditor, true); 
     addAndMakeVisible(seedTextEditor);
     addAndMakeVisible(seedLabel);
+    */
 
     limitAttachment.reset         (new SliderAttachment   (valueTreeState, "limit", limitSlider));
     peakReductionAttachment.reset (new SliderAttachment   (valueTreeState, "peakReduction", peakReductionSlider));
@@ -213,10 +215,10 @@ void uTCNAudioProcessorEditor::paint (Graphics& g)
 
       g.setColour (Colours::grey);
       g.setFont (Font ("Source Sans Variable", 32.0f, Font::plain).withTypefaceStyle ("Light")); //.withExtraKerningFactor (0.147f));
-      g.drawText ("ronn", 350, 0, 300, 70, Justification::centred, true);
+      g.drawText ("ncomp", 350, 0, 300, 70, Justification::centred, true);
       g.setFont (Font ("Source Sans Variable", 10.0f, Font::plain).withTypefaceStyle ("Light")); //.withExtraKerningFactor (0.147f));
-      g.drawText ("randomized overdrive", 350, 0, 300, 105, Justification::centred, true);
-      g.drawText ("neural networks", 350, 0, 300, 125, Justification::centred, true);
+      g.drawText ("neural compressor", 350, 0, 300, 105, Justification::centred, true);
+      g.drawText ("TCN", 350, 0, 300, 125, Justification::centred, true);
     }
 }
 
