@@ -5,7 +5,7 @@
 
 Efficient neural networks for audio effect modeling.
 
-| [Paper]() | [Demo]() | [Plugin]() |
+| [Paper]() | [Demo](https://csteinmetz1.github.io/tcn-audio-effects/) | [Plugin]() |
 
 </div>
 
@@ -29,7 +29,7 @@ pip install git+https://github.com/csteinmetz1/auraloss
 
 ## Pre-trained models
 
-You can download the pre-trained models [here](). Then unzip as below.
+You can download the pre-trained models [here](https://drive.google.com/file/d/1FkTZFn_6UFTX2ozB9G2RoONXQcuhJ0CX/view?usp=sharing). Then unzip as below.
 ```
 mkdir lightning_logs
 mv models.zip lightning_logs/
@@ -101,8 +101,9 @@ python train.py \
 
 ## Plugin
 
-We provide plugin builds (AV/VST3) for macOS. 
+We provide plugin builds (AV/VST3) for [macOS](). 
 You can also build the plugin for your platform.
+This will require the traced models, which you can download [here](https://drive.google.com/file/d/1FkkVl_EyU9Ztxi--AFVXJyd2uWYx3nqm/view?usp=sharing).
 First, you will need download and extract libtorch. 
 Check the [PyTorch site](https://pytorch.org/get-started/locally/) to find the correct version. 
 
