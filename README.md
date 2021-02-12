@@ -5,7 +5,7 @@
 
 Efficient neural networks for audio effect modeling.
 
-| [Paper]() | [Demo](https://csteinmetz1.github.io/tcn-audio-effects/) | [Plugin]() |
+| [Paper](https://arxiv.org/abs/2102.06200) | [Demo](https://csteinmetz1.github.io/tcn-audio-effects/) | [Plugin](https://drive.google.com/drive/folders/1Yq0jAZ5WIXolMuEUH11OgUCzpmtA5g37?usp=sharing) |
 
 </div>
 
@@ -101,7 +101,7 @@ python train.py \
 
 ## Plugin
 
-We provide plugin builds (AV/VST3) for [macOS](). 
+We provide plugin builds (AV/VST3) for [macOS](https://drive.google.com/drive/folders/1Yq0jAZ5WIXolMuEUH11OgUCzpmtA5g37?usp=sharing). 
 You can also build the plugin for your platform.
 This will require the traced models, which you can download [here](https://drive.google.com/file/d/1FkkVl_EyU9Ztxi--AFVXJyd2uWYx3nqm/view?usp=sharing).
 First, you will need download and extract libtorch. 
@@ -138,10 +138,10 @@ cmake --build .
 
 ## Citation
 If you use any of this code in your work, please consider citing us. 
-```
-@article{steinmetz2020efficient,
-        title={Efficient neural networks for real-time audio effect modeling},
-        author={Steinmetz, Christian J. and Reiss, Joshua D.},
-        journal={arXiv:},
-        year={2021}}
+```    
+    @article{steinmetz2021efficient,
+            title={Efficient Neural Networks for Real-time Analog Audio Effect Modeling},
+            author={Steinmetz, Christian J. and Reiss, Joshua D.},
+            journal={arXiv:2102.06200},
+            year={2021}}
 ```
