@@ -2,15 +2,15 @@
 <div  align="center">
 
 # micro-TCN
-
-Efficient neural networks for audio effect modeling.
-
 | [Paper](https://arxiv.org/abs/2102.06200) | [Demo](https://csteinmetz1.github.io/tcn-audio-effects/) | [Plugin](https://drive.google.com/drive/folders/1Yq0jAZ5WIXolMuEUH11OgUCzpmtA5g37?usp=sharing) |
+
+Efficient neural networks for real-time modeling of analog dynamic range compression.
+
 
 </div>
 
 <div align="center">
-<img src="plots/speed_cpu+gpu.svg">
+<img src="plots/tcn-arch.svg">
 </div>
 
 ## Setup
@@ -139,9 +139,9 @@ cmake --build .
 ## Citation
 If you use any of this code in your work, please consider citing us. 
 ```    
-    @article{steinmetz2021efficient,
-            title={Efficient Neural Networks for Real-time Analog Audio Effect Modeling},
-            author={Steinmetz, Christian J. and Reiss, Joshua D.},
-            journal={arXiv:2102.06200},
-            year={2021}}
+@inproceedings{steinmetz2022efficient,
+    title={Efficient neural networks for real-time modeling of analog dynamic range compression},
+    author={Steinmetz, Christian J. and Reiss, Joshua D.},
+    booktitle={152nd AES Convention},
+    year={2022}}
 ```

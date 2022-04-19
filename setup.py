@@ -5,7 +5,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "micro-tcn"
-DESCRIPTION = "Efficient neural networks for analog audio effect modeling"
+DESCRIPTION = "Efficient neural networks for real-time modeling of analog dynamic range compression"
 URL = "https://github.com/csteinmetz1/micro-tcn"
 EMAIL = "c.j.steinmetz@qmul.ac.uk"
 AUTHOR = "Christian Steinmetz"
